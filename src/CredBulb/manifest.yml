@@ -1,0 +1,4 @@
+﻿---
+applications:
+- name: credhub-bulb
+  buildpack: dotnet_core_buildpack
