@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using CredBulb.Models;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Security.DataProtection.CredHubCore;
 
 namespace CredBulb
@@ -22,7 +24,8 @@ namespace CredBulb
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddCredHubClient(Configuration, logFactory);
+            // services.AddCredHubClient(Configuration, logFactory);
+            services.AddHystrixCommand<NewColorCommand>("NewColor", Configuration);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

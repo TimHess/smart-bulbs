@@ -2,8 +2,9 @@
     ViewData["Title"] = "Home Page";
 }
 <h1><button class="btn btn-primary" onclick="changeTheBulbColor()">CLICK ME</button></h1>
+<div id="output"></div>
 <script>
     function changeTheBulbColor() {
-        $.post("/home/CredHubColorize", function (rsp) { alert("new color value: " + rsp) });
+        $.post("/home/CredHubColorize", function (rsp) { $("#output").append(rsp + "<br />"); });
     }
 </script>
