@@ -1,5 +1,6 @@
 ﻿using CredBulb.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Steeltoe.Common.Http;
@@ -15,12 +16,13 @@ namespace CredBulb.Controllers
         private NewColorCommand colorCommand;
         private static HttpClient _httpClient;
         private JsonSerializerSettings _jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-        private string _iftttUrl = "https://maker.ifttt.com/trigger/custom_light_up/with/key/***REMOVED***";
+        private string _iftttUrl = "https://maker.ifttt.com/trigger/custom_light_up/with/key/{0}";
 
-        public HomeController(NewColorCommand newColorCommand)
+        public HomeController(IConfiguration config, NewColorCommand newColorCommand)
         {
             colorCommand = newColorCommand;
             _httpClient = new HttpClient();
+            _iftttUrl = string.Format(_iftttUrl, config.GetValue(typeof(string), "iftttKey"));
         }
 
         public IActionResult Index()

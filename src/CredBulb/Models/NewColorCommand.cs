@@ -1,8 +1,6 @@
 ﻿using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Security.DataProtection.CredHub;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace CredBulb.Models
@@ -19,7 +17,8 @@ namespace CredBulb.Models
         {
             var credHubClient = await CredHubClient.CreateMTLSClientAsync(new CredHubOptions());
             var pwparams = new PasswordGenerationParameters { };
-            var newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(new PasswordGenerationRequest("color", pwparams))).Value;
+            var credRequest = new PasswordGenerationRequest("color", pwparams, overwriteMode: OverwiteMode.overwrite);
+            var newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(credRequest)).Value;
             int hash = newPassword.GetHashCode();
             string r = ((hash & 0xFF0000) >> 16).ToString("X2");
             string g = ((hash & 0x00FF00) >> 8).ToString("X2");
