@@ -77,19 +77,22 @@ namespace CredBulb.Controllers
             response.Sentiment = double.Parse(scoreResponse);
 
             // turn result into color
-            var rgb = Color.FromArgb(Convert.ToInt32(response.Sentiment * 100000));
-            if (response.Sentiment < .3)
+            var red = response.Sentiment - 1;
+            var green = response.Sentiment;
+            double blue;
+            if (response.Sentiment < .5)
             {
-                response.HexColor = "FF0000";
+                blue = response.Sentiment;
             }
-            else if(response.Sentiment >= .3 && response.Sentiment < .7)
+            else if (response.Sentiment == .5)
             {
-                response.HexColor = "0000FF";
+                blue = 1;
             }
             else
             {
-                response.HexColor = "00FF00";
+                blue = 1 - response.Sentiment;
             }
+            response.HexColor = Hexicolor(red) + Hexicolor(green) + Hexicolor(blue);
 
             // post to ifttt
             var ifTTTresponse = await _httpClient.PostAsJsonAsync($"{_iftttUrl}",
@@ -108,6 +111,25 @@ namespace CredBulb.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private string Hexicolor(double value)
+        {
+            var tempInt = Convert.ToInt32(value);
+
+            if (tempInt < 0)
+            {
+                tempInt *= -1;
+            }
+
+            tempInt *= 255;
+
+            if (tempInt > 255)
+            {
+                tempInt = 255; 
+            }
+
+            return tempInt.ToString("X2");
         }
     }
 }
