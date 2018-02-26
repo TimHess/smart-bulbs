@@ -4,7 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Steeltoe.Common.Http;
+using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -56,9 +58,11 @@ namespace CredBulb.Controllers
         [HttpPost]
         public async Task<IActionResult> LightByText([FromBody]string text)
         {
+            var response = new ColorChangeResponse { TextInput = text };
+
             // post text to cognitive services api
             var message = new HttpRequestMessage {
-                RequestUri = new System.Uri(_sentimentUrl),
+                RequestUri = new Uri(_sentimentUrl),
                 Method = HttpMethod.Post,
                 Headers =
                 {
@@ -70,35 +74,35 @@ namespace CredBulb.Controllers
             var sentimentHttpResponse = await _httpClient.SendAsync(message);
             SentimentResponse sentimentResponseData = await sentimentHttpResponse.Content.ReadAsJsonAsync<SentimentResponse>();
             sentimentResponseData.Documents.First().TryGetValue("score", out string scoreResponse);
-            var sentiment = double.Parse(scoreResponse);
+            response.Sentiment = double.Parse(scoreResponse);
 
             // turn result into color
-            string color;
-            if (sentiment < .3)
+            var rgb = Color.FromArgb(Convert.ToInt32(response.Sentiment * 100000));
+            if (response.Sentiment < .3)
             {
-                color = "FF0000";
+                response.HexColor = "FF0000";
             }
-            else if(sentiment >= .3 && sentiment < .7)
+            else if(response.Sentiment >= .3 && response.Sentiment < .7)
             {
-                color = "0000FF";
+                response.HexColor = "0000FF";
             }
             else
             {
-                color = "00FF00";
+                response.HexColor = "00FF00";
             }
 
             // post to ifttt
-            var response = await _httpClient.PostAsJsonAsync($"{_iftttUrl}",
+            var ifTTTresponse = await _httpClient.PostAsJsonAsync($"{_iftttUrl}",
                 new IftttWebhookPayload
                 {
-                    Value1 = color,
+                    Value1 = response.HexColor,
                     Value2 = "1"
                 },
                 _jsonSettings);
 
             // return sentiment + color value
             Thread.Sleep(1500);
-            return Json($"'{text}' has a sentiment value of {sentiment}, which evaluates to {color}");
+            return Json(response);
         }
 
         public IActionResult Error()

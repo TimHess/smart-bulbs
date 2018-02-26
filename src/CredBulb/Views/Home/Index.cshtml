@@ -1,10 +1,71 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
 }
-<h1><button class="btn btn-primary" onclick="changeTheBulbColor()">CLICK ME</button></h1>
+<style>
+    div.response {
+        display: block;
+    }
+
+    .response span {
+        display: inline-block;
+        height: 15px;
+        width: 15px;
+        vertical-align: middle;
+    }
+
+    #Sentiment {
+        display: none;
+    }
+</style>
+<div id="CredHub">
+    <h1><button class="btn btn-primary" onclick="changeTheBulbColor()">CredHub Color</button></h1>
+</div>
+<div id="Sentiment">
+    <h1>
+        <input type="text" id="sample" />
+        <button class="btn btn-primary" onclick="analyzeSentiment()">Analyze Sentiment</button>
+    </h1>
+</div>
+<button style="margin-top:150px;" class="btn btn-default" onclick="switchDemos()">Switch Demos</button>
 <div id="output"></div>
 <script>
     function changeTheBulbColor() {
-        $.post("/home/CredHubColorize", function (rsp) { $("#output").append(rsp + "<br />"); });
+        $.post("/home/CredHubColorize", function (rsp) {
+            //has a sentiment value of {sentiment}, which evaluates to
+            $("#output").append(
+                "<div class='response'>#" +
+                rsp + " <span style='background-color:#" + rsp + "'></span>" +
+                "</div>");
+        });
+    }
+    function analyzeSentiment() {
+        var text = $("#sample").val();
+        $.ajax({
+            url: "/home/LightByText",
+            type: "POST",
+            data: '"' + text + '"',
+            contentType: "application/json; charset=utf-8",
+            success: function (rsp) {
+                $("#output").append(
+                    "<div class='response'>'" +
+                    rsp.textInput + "' has a sentiment value of " +
+                    rsp.sentiment + ", which evalutates to #" +
+                    rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
+                    "</div>");
+            }
+        });
+    }
+    var credHubDisplayed = true;
+    function switchDemos() {
+        if (credHubDisplayed) {
+            $("#CredHub").hide();
+            $("#Sentiment").show();
+            credHubDisplayed = false;
+        }
+        else {
+            $("#CredHub").show();
+            $("#Sentiment").hide();
+            credHubDisplayed = true;
+        }
     }
 </script>
