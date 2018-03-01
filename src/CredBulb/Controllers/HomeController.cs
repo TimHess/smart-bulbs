@@ -115,21 +115,19 @@ namespace CredBulb.Controllers
 
         private string Hexicolor(double value)
         {
-            var tempInt = Convert.ToInt32(value);
-
-            if (tempInt < 0)
+            if (value < 0)
             {
-                tempInt *= -1;
+                value *= -1;
             }
 
-            tempInt *= 255;
+            value *= 255;
 
-            if (tempInt > 255)
+            if (value > 255)
             {
-                tempInt = 255; 
+                value = 255; 
             }
 
-            return tempInt.ToString("X2");
+            return Convert.ToInt16(value).ToString("X2");
         }
     }
 }
