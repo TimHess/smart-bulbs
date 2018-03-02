@@ -2,6 +2,7 @@
     ViewData["Title"] = "Home Page";
 }
 <style>
+    .container { width: 100% }
     div.response {
         display: block;
     }
@@ -32,11 +33,14 @@
 <div id="output">
 
 </div>
-<table class="table" id="tweets">
+<table class="response table" id="tweets">
     <tr>
         <th>Image</th>
         <th>Name</th>
         <th>Tweet</th>
+        <th style="width:180px">Timestamp</th>
+        <th>Sentiment</th>
+        <th style="width:100px">Color</th>
     </tr>
 </table>
     <script>
@@ -69,17 +73,21 @@
 
         function checkTwitter() {
             $.ajax({
-                url: "/home/TwitterHandle",
+                url: "/home/CheckTwitter",
                 type: "POST",
                 data: '',
                 contentType: "application/json; charset=utf-8",
                 success: function (rsp) {
                     $("#tweets").show();
-                    for (var i = 0; i < rsp.statuses.length; i++) {
-                        $("#tweets").append("<tr>" +
-                                "<td><img src='" + rsp.statuses[i].user.profileImageUrl + "' alt='" + rsp.statuses[i].user.name + "' /></td>" +
-                                "<td><label>" + rsp.statuses[i].user.name + "</label></td>" +
-                                "<td><label>" + rsp.statuses[i].fullText + "</label></td>" +
+                    for (var i = 0; i < rsp.length; i++) {
+                        $("#tweets").append(
+                            "<tr>" +
+                                "<td><img src='" + rsp[i].user.profileImageUrl + "' alt='" + rsp[i].user.name + "' /></td>" +
+                                "<td><label>" + rsp[i].user.name + "</label></td>" +
+                                "<td><label>" + rsp[i].fullText + "</label></td>" +
+                                "<td>" + rsp[i].createdAt + "</td>" +
+                                "<td>" + rsp[i].sentimentValue + "</td>" + 
+                                "<td>#" + rsp[i].hexColor + " <span style= 'background-color:#" + rsp[i].hexColor + "'></span></td>" +
                             "</tr>");
                     }
                 }

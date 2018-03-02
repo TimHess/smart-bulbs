@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Steeltoe.Common.Http;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -69,39 +70,10 @@ namespace CredBulb.Controllers
         {
             var response = new ColorChangeResponse { TextInput = text };
 
-            // post text to cognitive services api
-            var message = new HttpRequestMessage {
-                RequestUri = new Uri(_sentimentUrl),
-                Method = HttpMethod.Post,
-                Headers =
-                {
-                    { "Ocp-Apim-Subscription-Key", _cognitiveKey },
-                    { "Accept", "application/json" }
-                },
-                Content = new StringContent($"{{\"documents\":[{{\"language\":\"en\",\"id\":\"1\",\"text\":\"{text}\"}}]}}", Encoding.UTF8, "application/json")
-            };
-            var sentimentHttpResponse = await _httpClient.SendAsync(message);
-            SentimentResponse sentimentResponseData = await sentimentHttpResponse.Content.ReadAsJsonAsync<SentimentResponse>();
-            sentimentResponseData.Documents.First().TryGetValue("score", out string scoreResponse);
-            response.Sentiment = double.Parse(scoreResponse);
+            var analysis = await ColorBySentiment(new List<string>{ text });
 
-            // turn result into color
-            var red = response.Sentiment - 1;
-            var green = response.Sentiment;
-            double blue;
-            if (response.Sentiment < .5)
-            {
-                blue = response.Sentiment;
-            }
-            else if (response.Sentiment == .5)
-            {
-                blue = 1;
-            }
-            else
-            {
-                blue = 1 - response.Sentiment;
-            }
-            response.HexColor = Hexicolor(red) + Hexicolor(green) + Hexicolor(blue);
+            response.Sentiment = analysis.First().Item2;
+            response.HexColor = analysis.First().Item3;
 
             // post to ifttt
             var ifTTTresponse = await _httpClient.PostAsJsonAsync($"{_iftttUrl}",
@@ -118,7 +90,7 @@ namespace CredBulb.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> TwitterHandle()
+        public async Task<IActionResult> CheckTwitter()
         {
             try
             {
@@ -150,28 +122,92 @@ namespace CredBulb.Controllers
                            search.TweetMode == TweetMode.Extended
                      select search)
                     .SingleOrDefaultAsync();
-                //var tweets =
-                //    await
-                //    (from tweet in ctx.Status
-                //     where tweet.Type == StatusType.Home &&
-                //           tweet.TweetMode == TweetMode.Extended && tweet.FullText.Contains("#cfsummit")
-                //     select new TweetViewModel
-                //     {
-                //         ImageUrl = tweet.User.ProfileImageUrl,
-                //         ScreenName = tweet.User.ScreenNameResponse,
-                //         Text = tweet.FullText
-                //     })
-                //    .ToListAsync();
-                return Json(searchResponse);
+
+                var texts = searchResponse.Statuses.Select(t => t.FullText);
+                var analyzed = await ColorBySentiment(texts);
+
+                var toReturn = new List<EnhancedTwitterStatus>();
+                foreach (var s in searchResponse.Statuses)
+                {
+                    var analysis = analyzed.Find(a => a.Item1 == s.FullText);
+                    toReturn.Add(new EnhancedTwitterStatus {
+                        FullText = s.FullText,
+                        CreatedAt = s.CreatedAt,
+                        User = s.User,
+                        SentimentValue = analysis.Item2,
+                        HexColor = analysis.Item3 });
+                }
+
+                return Json(toReturn);
             }
             catch (Exception ex)
             {
                 throw ex;
             }
         }
+
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private async Task<List<Tuple<string, double, string>>> ColorBySentiment(IEnumerable<string> texts)
+        {
+            var toReturn = new List<Tuple<string, double, string>>();
+
+            var i = 1;
+            var docList = string.Empty;
+
+            foreach (var t in texts)
+            {
+                var cleanText = t.Replace("\r", "").Replace("\n", "").Replace('"', '\'');
+                docList += $"{{\"language\":\"en\",\"id\":\"{i}\",\"text\":\"{cleanText}\"}},";
+                i++;
+            }
+            docList = docList.Substring(0, docList.Length - 1);
+            var message = new HttpRequestMessage
+            {
+                RequestUri = new Uri(_sentimentUrl),
+                Method = HttpMethod.Post,
+                Headers =
+                {
+                    { "Ocp-Apim-Subscription-Key", _cognitiveKey },
+                    { "Accept", "application/json" }
+                },
+                Content = new StringContent($"{{\"documents\":[{docList}]}}", Encoding.UTF8, "application/json")
+            };
+            var sentimentHttpResponse = await _httpClient.SendAsync(message);
+            SentimentResponse sentimentResponseData = await sentimentHttpResponse.Content.ReadAsJsonAsync<SentimentResponse>();
+            i = 0;
+            foreach (var r in sentimentResponseData.Documents)
+            {
+                var sentimentParsible = r.TryGetValue("score", out string scoreResponse);
+                var sentiment = double.Parse(scoreResponse);
+                toReturn.Add(new Tuple<string, double, string>(texts.ElementAt(i), sentiment, HexColorFromDecimal(sentiment)));
+                i++;
+            }
+
+            return toReturn;
+        }
+
+        private string HexColorFromDecimal(double sentiment)
+        {
+            var red = sentiment - 1;
+            var green = sentiment;
+            double blue;
+            if (sentiment < .5)
+            {
+                blue = sentiment;
+            }
+            else if (sentiment == .5)
+            {
+                blue = 1;
+            }
+            else
+            {
+                blue = 1 - sentiment;
+            }
+            return Hexicolor(red) + Hexicolor(green) + Hexicolor(blue);
         }
 
         private string Hexicolor(double value)
