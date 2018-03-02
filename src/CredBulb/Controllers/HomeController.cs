@@ -1,4 +1,5 @@
 ﻿using CredBulb.Models;
+using LinqToTwitter;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -23,6 +24,10 @@ namespace CredBulb.Controllers
         private string _iftttUrl = "https://maker.ifttt.com/trigger/custom_light_up/with/key/{0}";
         private string _sentimentUrl = "https://eastus2.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment";
         private string _cognitiveKey;
+        private string _ConsumerKey;
+        private string _ConsumerSecret;
+        private string _AccessToken;
+        private string _AccessTokenSecrete;
 
         public HomeController(IConfiguration config, NewColorCommand newColorCommand)
         {
@@ -30,6 +35,10 @@ namespace CredBulb.Controllers
             _httpClient = new HttpClient();
             _iftttUrl = string.Format(_iftttUrl, config.GetValue(typeof(string), "iftttKey"));
             _cognitiveKey = config.GetValue<string>("cognitiveServicesKey");
+            _ConsumerKey = config.GetValue<string>("Twitter:ConsumerKey");
+            _ConsumerSecret = config.GetValue<string>("Twitter:ConsumerSecret");
+            _AccessToken = config.GetValue<string>("Twitter:AccessToken");
+            _AccessTokenSecrete = config.GetValue<string>("Twitter:AccessTokenSecret");
         }
 
         public IActionResult Index()
@@ -108,6 +117,58 @@ namespace CredBulb.Controllers
             return Json(response);
         }
 
+        [HttpPost]
+        public async Task<IActionResult> TwitterHandle()
+        {
+            try
+            {
+                var auth = new SingleUserAuthorizer
+                {
+                    CredentialStore = new InMemoryCredentialStore
+                    {
+                        ConsumerKey = _ConsumerKey,
+                        ConsumerSecret = _ConsumerSecret,
+                        OAuthToken = _AccessToken,
+                        OAuthTokenSecret = _AccessTokenSecrete
+                    }
+                };
+                await auth.AuthorizeAsync();
+
+                var ctx = new TwitterContext(auth);
+                if (auth == null)
+                {
+
+                }
+                string searchTerm = "#cfsummit -coldfusion";
+
+                Search searchResponse =
+                    await
+                    (from search in ctx.Search
+                     where search.Type == SearchType.Search &&
+                           search.Query == searchTerm &&
+                           search.IncludeEntities == true &&
+                           search.TweetMode == TweetMode.Extended
+                     select search)
+                    .SingleOrDefaultAsync();
+                //var tweets =
+                //    await
+                //    (from tweet in ctx.Status
+                //     where tweet.Type == StatusType.Home &&
+                //           tweet.TweetMode == TweetMode.Extended && tweet.FullText.Contains("#cfsummit")
+                //     select new TweetViewModel
+                //     {
+                //         ImageUrl = tweet.User.ProfileImageUrl,
+                //         ScreenName = tweet.User.ScreenNameResponse,
+                //         Text = tweet.FullText
+                //     })
+                //    .ToListAsync();
+                return Json(searchResponse);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
