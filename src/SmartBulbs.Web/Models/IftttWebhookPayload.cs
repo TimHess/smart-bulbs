@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace CredBulb.Models
+﻿namespace SmartBulbs.Web.Models
 {
     public class IftttWebhookPayload
     {

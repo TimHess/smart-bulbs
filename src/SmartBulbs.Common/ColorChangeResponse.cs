@@ -1,4 +1,4 @@
-﻿namespace CredBulb.Models
+﻿namespace SmartBulbs.Common
 {
     public class ColorChangeResponse
     {

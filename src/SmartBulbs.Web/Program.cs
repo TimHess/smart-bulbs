@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 
-namespace CredBulb
+namespace SmartBulbs.Web
 {
     public class Program
     {

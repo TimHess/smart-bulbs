@@ -3,7 +3,7 @@ using Steeltoe.Security.DataProtection.CredHub;
 using System;
 using System.Threading.Tasks;
 
-namespace CredBulb.Models
+namespace SmartBulbs.Web.Models
 {
     public class NewColorCommand : HystrixCommand<string>
     {

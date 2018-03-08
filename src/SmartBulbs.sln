@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2026
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CredBulb", "CredBulb\CredBulb.csproj", "{5B78F830-3E1E-4F6E-851C-4DF231800568}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartBulbs.Web", "SmartBulbs.Web\SmartBulbs.Web.csproj", "{5B78F830-3E1E-4F6E-851C-4DF231800568}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartBulbs.Console", "SmartBulbs.Console\SmartBulbs.Console.csproj", "{39CB4FB0-A49D-4F4C-A41A-C36FDB099B44}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartBulbs.Common", "SmartBulbs.Common\SmartBulbs.Common.csproj", "{D4BF308F-17D7-4BC5-A300-641AFCD490C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{5B78F830-3E1E-4F6E-851C-4DF231800568}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B78F830-3E1E-4F6E-851C-4DF231800568}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B78F830-3E1E-4F6E-851C-4DF231800568}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39CB4FB0-A49D-4F4C-A41A-C36FDB099B44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39CB4FB0-A49D-4F4C-A41A-C36FDB099B44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39CB4FB0-A49D-4F4C-A41A-C36FDB099B44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39CB4FB0-A49D-4F4C-A41A-C36FDB099B44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4BF308F-17D7-4BC5-A300-641AFCD490C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4BF308F-17D7-4BC5-A300-641AFCD490C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4BF308F-17D7-4BC5-A300-641AFCD490C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4BF308F-17D7-4BC5-A300-641AFCD490C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,4 @@
-using System;
-
-namespace CredBulb.Models
+namespace SmartBulbs.Web.Models
 {
     public class ErrorViewModel
     {

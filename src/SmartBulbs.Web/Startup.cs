@@ -1,21 +1,18 @@
-﻿using CredBulb.Models;
+﻿using SmartBulbs.Web.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using SmartBulbs.Common;
 using Steeltoe.CircuitBreaker.Hystrix;
-using Steeltoe.Security.DataProtection.CredHubCore;
 
-namespace CredBulb
+namespace SmartBulbs.Web
 {
     public class Startup
     {
-        private ILoggerFactory logFactory;
-        public Startup(IConfiguration configuration, ILoggerFactory loggerFactory)
+        public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            logFactory = loggerFactory;
         }
 
         public IConfiguration Configuration { get; }
@@ -24,8 +21,11 @@ namespace CredBulb
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            // services.AddCredHubClient(Configuration, logFactory);
+
+            /* Begin non-boilerplate code for demo */
             services.AddHystrixCommand<NewColorCommand>("NewColor", Configuration);
+            services.Configure<TwitterCredentials>(Configuration.GetSection("Twitter"));
+            /* End non-boilerplate code for demo */
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

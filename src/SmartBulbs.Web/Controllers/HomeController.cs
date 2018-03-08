@@ -1,21 +1,22 @@
-﻿using CredBulb.Models;
-using LinqToTwitter;
+﻿using LinqToTwitter;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using SmartBulbs.Web.Models;
+using SmartBulbs.Common;
 using Steeltoe.Common.Http;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CredBulb.Controllers
+namespace SmartBulbs.Web.Controllers
 {
     public class HomeController : Controller
     {
@@ -25,21 +26,15 @@ namespace CredBulb.Controllers
         private string _iftttUrl = "https://maker.ifttt.com/trigger/custom_light_up/with/key/{0}";
         private string _sentimentUrl = "https://eastus2.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment";
         private string _cognitiveKey;
-        private string _ConsumerKey;
-        private string _ConsumerSecret;
-        private string _AccessToken;
-        private string _AccessTokenSecrete;
+        private TwitterCredentials _twitterCreds;
 
-        public HomeController(IConfiguration config, NewColorCommand newColorCommand)
+        public HomeController(IConfiguration config, NewColorCommand newColorCommand, IOptionsSnapshot<TwitterCredentials> twitterCreds)
         {
             _colorCommand = newColorCommand;
             _httpClient = new HttpClient();
             _iftttUrl = string.Format(_iftttUrl, config.GetValue(typeof(string), "iftttKey"));
             _cognitiveKey = config.GetValue<string>("cognitiveServicesKey");
-            _ConsumerKey = config.GetValue<string>("Twitter:ConsumerKey");
-            _ConsumerSecret = config.GetValue<string>("Twitter:ConsumerSecret");
-            _AccessToken = config.GetValue<string>("Twitter:AccessToken");
-            _AccessTokenSecrete = config.GetValue<string>("Twitter:AccessTokenSecret");
+            _twitterCreds = twitterCreds.Value;
         }
 
         public IActionResult Index()
@@ -52,6 +47,10 @@ namespace CredBulb.Controllers
         {
             // call credhub to generate a hex password
             var color = await _colorCommand.ExecuteAsync();
+            if (_colorCommand.IsResponseFromFallback)
+            {
+                Console.WriteLine("Response is not from CredHub");
+            }
 
             // call ifttt to colorize
             var response = await _httpClient.PostAsJsonAsync($"{_iftttUrl}", 
@@ -90,6 +89,29 @@ namespace CredBulb.Controllers
         }
 
         [HttpPost]
+        public async Task<IActionResult> BulkText([FromBody]List<string> texts)
+        {
+
+            var analysis = await BulkSentiment(texts);
+
+            var response = new ColorChangeResponse { TextInput = "Bulk Analysis" };
+            response.Sentiment = analysis.Average(i => i.Score);
+            response.HexColor = HexColorFromDecimal(response.Sentiment);
+
+            // post to ifttt
+            var ifTTTresponse = await _httpClient.PostAsJsonAsync($"{_iftttUrl}",
+                new IftttWebhookPayload
+                {
+                    Value1 = response.HexColor,
+                    Value2 = "1"
+                },
+                _jsonSettings);
+
+            // return sentiment + color value
+            return Json(response);
+        }
+
+        [HttpPost]
         public async Task<IActionResult> CheckTwitter()
         {
             try
@@ -98,10 +120,10 @@ namespace CredBulb.Controllers
                 {
                     CredentialStore = new InMemoryCredentialStore
                     {
-                        ConsumerKey = _ConsumerKey,
-                        ConsumerSecret = _ConsumerSecret,
-                        OAuthToken = _AccessToken,
-                        OAuthTokenSecret = _AccessTokenSecrete
+                        ConsumerKey = _twitterCreds.ConsumerKey,
+                        ConsumerSecret = _twitterCreds.ConsumerSecret,
+                        OAuthToken = _twitterCreds.AccessToken,
+                        OAuthTokenSecret = _twitterCreds.AccessTokenSecret
                     }
                 };
                 await auth.AuthorizeAsync();
@@ -151,16 +173,42 @@ namespace CredBulb.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
+        /// <summary>
+        /// Analyze text and provide sentiment analysis and color values for each string
+        /// </summary>
+        /// <param name="texts">Strings to analyze</param>
+        /// <returns>Sentiment analysis and color values with original strings</returns>
         private async Task<List<Tuple<string, double, string>>> ColorBySentiment(IEnumerable<string> texts)
         {
             var toReturn = new List<Tuple<string, double, string>>();
+
+            var analysis = await BulkSentiment(texts);
+            foreach (var r in analysis)
+            {
+                toReturn.Add(new Tuple<string, double, string>(r.Text, r.Score, HexColorFromDecimal(r.Score)));
+            }
+
+            return toReturn;
+        }
+
+        /// <summary>
+        /// Call Azure Cognitive Services' Sentiment Analysis Api
+        /// </summary>
+        /// <param name="texts">List of strings to score</param>
+        /// <returns>List of strings with their sentiment scores</returns>
+        private async Task<List<ScoredText>> BulkSentiment(IEnumerable<string> texts)
+        {
+            var toReturn = new List<ScoredText>();
 
             var i = 1;
             var docList = string.Empty;
 
             foreach (var t in texts)
             {
+                // scrub user content so the api call won't fail
                 var cleanText = t.Replace("\r", "").Replace("\n", "").Replace('"', '\'');
+
+                // build the request body - Cognitive services requires a unique integer per item
                 docList += $"{{\"language\":\"en\",\"id\":\"{i}\",\"text\":\"{cleanText}\"}},";
                 i++;
             }
@@ -183,13 +231,20 @@ namespace CredBulb.Controllers
             {
                 var sentimentParsible = r.TryGetValue("score", out string scoreResponse);
                 var sentiment = double.Parse(scoreResponse);
-                toReturn.Add(new Tuple<string, double, string>(texts.ElementAt(i), sentiment, HexColorFromDecimal(sentiment)));
+                toReturn.Add(new ScoredText { Text = texts.ElementAt(i), Score = sentiment });
                 i++;
             }
 
             return toReturn;
         }
 
+
+        /// <summary>
+        /// Convert a decimal (between 0 and 1) to an RGB value
+        /// </summary>
+        /// <param name="sentiment">Sentiment value</param>
+        /// <returns>RGB color value</returns>
+        /// <remarks>The scale is red(0) to green(1), with blue values highest at .5 and lower towards 0 or 1</remarks>
         private string HexColorFromDecimal(double sentiment)
         {
             var red = sentiment - 1;
@@ -210,6 +265,12 @@ namespace CredBulb.Controllers
             return Hexicolor(red) + Hexicolor(green) + Hexicolor(blue);
         }
 
+        /// <summary>
+        /// Converts a decimal to a hex value
+        /// </summary>
+        /// <param name="value">Value to convert</param>
+        /// <returns>Hex value</returns>
+        /// <remarks>Values are altered to min 0 and max of 255 if outside those bounds</remarks>
         private string Hexicolor(double value)
         {
             if (value < 0)
