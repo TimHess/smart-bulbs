@@ -1,0 +1,66 @@
+@{
+    ViewData["Title"] = "Observation Deck";
+}
+<style>
+    th, td {
+        padding: 3px;
+    }
+
+    .container {
+        width: 100%
+    }
+
+    div.response {
+        display: block;
+    }
+
+    .response span {
+        display: inline-block;
+        height: 15px;
+        width: 15px;
+        vertical-align: middle;
+    }
+
+    #Sentiment, #tweets {
+        display: none;
+    }
+</style>
+<div class="row">
+    <h1>Welcome to the observation deck!</h1>
+    <h2>Messages will display here as they arrive</h2>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <table class="response table" id="messages">
+            <tr>
+                <th>Text</th>
+                <th>Sentiment</th>
+                <th style="width:100px">Color</th>
+            </tr>
+        </table>
+    </div>
+</div>
+<script src="~/lib/signalr/signalr.js"></script>
+<script>
+    const connection = new signalR.HubConnection('/observe');
+
+    connection.on('Messages', (messages) => {
+        $.each(messages, function (i, m) {
+            $("#messages").append(
+                "<tr><td>" + m.textInput + "</td><td>" +
+                (m.sentiment ? parseFloat(m.sentiment * 100).toFixed(2) + "%" : "n/a") + "</td><td>" +
+                (m.hexColor ? "#" + m.hexColor + " <span style='background-color:#" + m.hexColor + "'></span>" : "n/a") +
+                "</tr></td>"
+            );
+        });
+    });
+
+    function showErr(msg) {
+        const listItem = document.createElement('li');
+        listItem.setAttribute("style", "color: red");
+        listItem.innerText = msg.toString();
+        document.getElementById('messages').appendChild(listItem);
+    }
+
+    connection.start().catch(err => showErr(err));
+</script>

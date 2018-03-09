@@ -1,8 +1,10 @@
 ﻿using LinqToTwitter;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SmartBulbs.Common;
 using Steeltoe.Common.Http;
+using Steeltoe.Discovery.Eureka;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,8 +27,18 @@ namespace TwitterMonitor
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
 
+            var factory = new LoggerFactory();
+            factory.AddConsole(Configuration.GetSection("Logging"));
+
             TwitterCredentials twitterCreds = new TwitterCredentials();
             Configuration.GetSection("Twitter").Bind(twitterCreds);
+
+            // Build Eureka clients config from configuration
+            var discoveryConfig = new EurekaClientConfig();
+            Configuration.GetSection("eureka:client").Bind(discoveryConfig);
+
+            // Create the Eureka client, start fetching registry in background thread
+            var discovery = new DiscoveryClient(discoveryConfig, null, factory);
 
             var auth = new SingleUserAuthorizer
             {
@@ -75,16 +87,27 @@ namespace TwitterMonitor
                     }
 
                     // post to web api
-                    var apiResponse = await httpClient.PostAsync(Configuration["ApiBaseUrl"] + "/bulktext", new StringContent(JsonConvert.SerializeObject(texts), Encoding.UTF8, "application/json"));
-                    if (apiResponse.IsSuccessStatusCode)
+                    var apps = discovery.Applications;
+                    var api = apps.GetRegisteredApplication("SmartBulbs.Web");
+                    if (api != null)
                     {
-                        var responseBody = await apiResponse.Content.ReadAsJsonAsync<ColorChangeResponse>();
-                        Console.WriteLine($"Aggregate sentiment value was {responseBody.Sentiment} which translates to #{responseBody.HexColor}");
+                        var apiResponse = await httpClient.PostAsync(Configuration["ApiBaseUrl"] + "/bulktext", new StringContent(JsonConvert.SerializeObject(texts), Encoding.UTF8, "application/json"));
+                        if (apiResponse.IsSuccessStatusCode)
+                        {
+                            var responseBody = await apiResponse.Content.ReadAsJsonAsync<ColorChangeResponse>();
+                            Console.WriteLine($"Aggregate sentiment value was {responseBody.Sentiment} which translates to #{responseBody.HexColor}");
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"Request failed, status code: {apiResponse.StatusCode}");
+                            Console.ForegroundColor = ConsoleColor.White;
+                        }
                     }
                     else
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Request failed, status code: {apiResponse.StatusCode}");
+                        Console.WriteLine($"Unable to find api server!");
                         Console.ForegroundColor = ConsoleColor.White;
                     }
                 }

@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SmartBulbs.Common;
 using Steeltoe.CircuitBreaker.Hystrix;
+using SmartBulbs.Web.Hubs;
+using Steeltoe.Discovery.Client;
 
 namespace SmartBulbs.Web
 {
@@ -21,8 +23,10 @@ namespace SmartBulbs.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            services.AddSignalR();
 
             /* Begin non-boilerplate code for demo */
+            services.AddDiscoveryClient(Configuration);
             services.AddHystrixCommand<NewColorCommand>("NewColor", Configuration);
             services.Configure<TwitterCredentials>(Configuration.GetSection("Twitter"));
             /* End non-boilerplate code for demo */
@@ -48,6 +52,13 @@ namespace SmartBulbs.Web
                 routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
+            });
+
+            app.UseDiscoveryClient();
+
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<ObservationHub>("/observe");
             });
         }
     }

@@ -15,6 +15,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SmartBulbs.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SmartBulbs.Web.Controllers
 {
@@ -27,17 +29,24 @@ namespace SmartBulbs.Web.Controllers
         private string _sentimentUrl = "https://eastus2.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment";
         private string _cognitiveKey;
         private TwitterCredentials _twitterCreds;
+        private IHubContext<ObservationHub> _hubContext;
 
-        public HomeController(IConfiguration config, NewColorCommand newColorCommand, IOptionsSnapshot<TwitterCredentials> twitterCreds)
+        public HomeController(IConfiguration config, NewColorCommand newColorCommand, IOptionsSnapshot<TwitterCredentials> twitterCreds, IHubContext<ObservationHub> hubContext)
         {
             _colorCommand = newColorCommand;
             _httpClient = new HttpClient();
             _iftttUrl = string.Format(_iftttUrl, config.GetValue(typeof(string), "iftttKey"));
             _cognitiveKey = config.GetValue<string>("cognitiveServicesKey");
             _twitterCreds = twitterCreds.Value;
+            _hubContext = hubContext;
         }
 
         public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Observe()
         {
             return View();
         }
@@ -59,6 +68,8 @@ namespace SmartBulbs.Web.Controllers
                     Value2 = "1" }, 
                 _jsonSettings);
 
+            await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { new ColorChangeResponse { HexColor = color, TextInput = "CredHub Password" } });
+
             // return results
             Thread.Sleep(1500);
             return Json(color);
@@ -69,7 +80,7 @@ namespace SmartBulbs.Web.Controllers
         {
             var response = new ColorChangeResponse { TextInput = text };
 
-            var analysis = await ColorBySentiment(new List<string>{ text });
+            var analysis = await ColorBySentiment(new List<string> { text });
 
             response.Sentiment = analysis.First().Item2;
             response.HexColor = analysis.First().Item3;
@@ -83,6 +94,8 @@ namespace SmartBulbs.Web.Controllers
                 },
                 _jsonSettings);
 
+            await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse>{ response });
+
             // return sentiment + color value
             Thread.Sleep(1500);
             return Json(response);
@@ -91,11 +104,12 @@ namespace SmartBulbs.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> BulkText([FromBody]List<string> texts)
         {
-
             var analysis = await BulkSentiment(texts);
 
+            await _hubContext.Clients.All.SendAsync("Messages", analysis);
+
             var response = new ColorChangeResponse { TextInput = "Bulk Analysis" };
-            response.Sentiment = analysis.Average(i => i.Score);
+            response.Sentiment = analysis.Average(i => i.Sentiment);
             response.HexColor = HexColorFromDecimal(response.Sentiment);
 
             // post to ifttt
@@ -149,6 +163,7 @@ namespace SmartBulbs.Web.Controllers
                 var analyzed = await ColorBySentiment(texts);
 
                 var toReturn = new List<EnhancedTwitterStatus>();
+                var toBroadcast = new List<ColorChangeResponse>();
                 foreach (var s in searchResponse.Statuses)
                 {
                     var analysis = analyzed.Find(a => a.Item1 == s.FullText);
@@ -158,7 +173,9 @@ namespace SmartBulbs.Web.Controllers
                         User = s.User,
                         SentimentValue = analysis.Item2,
                         HexColor = analysis.Item3 });
+                    toBroadcast.Add(new ColorChangeResponse { TextInput = s.FullText, Sentiment = analysis.Item2, HexColor = analysis.Item3 });
                 }
+                await _hubContext.Clients.All.SendAsync("Messages", toBroadcast);
 
                 return Json(toReturn);
             }
@@ -185,7 +202,7 @@ namespace SmartBulbs.Web.Controllers
             var analysis = await BulkSentiment(texts);
             foreach (var r in analysis)
             {
-                toReturn.Add(new Tuple<string, double, string>(r.Text, r.Score, HexColorFromDecimal(r.Score)));
+                toReturn.Add(new Tuple<string, double, string>(r.TextInput, r.Sentiment, HexColorFromDecimal(r.Sentiment)));
             }
 
             return toReturn;
@@ -231,7 +248,7 @@ namespace SmartBulbs.Web.Controllers
             {
                 var sentimentParsible = r.TryGetValue("score", out string scoreResponse);
                 var sentiment = double.Parse(scoreResponse);
-                toReturn.Add(new ScoredText { Text = texts.ElementAt(i), Score = sentiment });
+                toReturn.Add(new ScoredText { TextInput = texts.ElementAt(i), Sentiment = sentiment });
                 i++;
             }
 
