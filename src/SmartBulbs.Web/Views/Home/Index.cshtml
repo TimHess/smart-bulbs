@@ -64,7 +64,7 @@
                     $("#output").append(
                         "<div class='response'>'" +
                         rsp.textInput + "' has a sentiment value of " +
-                        rsp.sentiment + ", which evalutates to #" +
+                        parseFloat(rsp.sentiment * 100).toFixed(2) + "%" + ", which evalutates to #" +
                         rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
                         "</div>");
                 }
@@ -86,7 +86,7 @@
                                 "<td><label>" + rsp[i].user.name + "</label></td>" +
                                 "<td><label>" + rsp[i].fullText + "</label></td>" +
                                 "<td>" + rsp[i].createdAt + "</td>" +
-                                "<td>" + rsp[i].sentimentValue + "</td>" + 
+                                "<td>" + parseFloat(rsp[i].sentimentValue * 100).toFixed(2) + "%" + "</td>" + 
                                 "<td>#" + rsp[i].hexColor + " <span style= 'background-color:#" + rsp[i].hexColor + "'></span></td>" +
                             "</tr>");
                     }
