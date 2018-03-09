@@ -48,8 +48,8 @@
             $.post("/home/CredHubColorize", function (rsp) {
                 //has a sentiment value of {sentiment}, which evaluates to
                 $("#output").append(
-                    "<div class='response'>#" +
-                    rsp + " <span style='background-color:#" + rsp + "'></span>" +
+                    "<div class='response'>New password: " + rsp.textInput + " represented as #" +
+                    rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
                     "</div>");
             });
         }

@@ -1,6 +1,6 @@
 ﻿---
 applications:
-- name: smartbulbs-web
+- name: smartbulbs-console
   buildpack: dotnet_core_buildpack
   services:
    - myDiscoveryService

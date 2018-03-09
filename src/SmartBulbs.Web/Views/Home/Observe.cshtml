@@ -21,7 +21,7 @@
         vertical-align: middle;
     }
 
-    #Sentiment, #tweets {
+    .noshow {
         display: none;
     }
 </style>
@@ -32,26 +32,31 @@
 <div class="row">
     <div class="col-md-12">
         <table class="response table" id="messages">
-            <tr>
-                <th>Text</th>
-                <th>Sentiment</th>
-                <th style="width:100px">Color</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Text</th>
+                    <th>Sentiment</th>
+                    <th style="width:100px">Color</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
         </table>
     </div>
 </div>
 <script src="~/lib/signalr/signalr.js"></script>
 <script>
     const connection = new signalR.HubConnection('/observe');
-
+    var messageId = 1;
     connection.on('Messages', (messages) => {
         $.each(messages, function (i, m) {
-            $("#messages").append(
-                "<tr><td>" + m.textInput + "</td><td>" +
+            $("#messages tbody").prepend(
+                "<tr class='noshow' id='message" + messageId + "'><td>" + m.textInput + "</td><td>" +
                 (m.sentiment ? parseFloat(m.sentiment * 100).toFixed(2) + "%" : "n/a") + "</td><td>" +
                 (m.hexColor ? "#" + m.hexColor + " <span style='background-color:#" + m.hexColor + "'></span>" : "n/a") +
                 "</tr></td>"
             );
+            $("#message" + messageId).slideToggle(1000);
+            messageId++;
         });
     });
 

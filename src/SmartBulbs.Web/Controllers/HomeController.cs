@@ -1,11 +1,13 @@
 ﻿using LinqToTwitter;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using SmartBulbs.Web.Models;
 using SmartBulbs.Common;
+using SmartBulbs.Web.Hubs;
+using SmartBulbs.Web.Models;
 using Steeltoe.Common.Http;
 using System;
 using System.Collections.Generic;
@@ -15,14 +17,12 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SmartBulbs.Web.Hubs;
-using Microsoft.AspNetCore.SignalR;
 
 namespace SmartBulbs.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private NewColorCommand _colorCommand;
+        private NewPasswordCommand _colorCommand;
         private static HttpClient _httpClient;
         private JsonSerializerSettings _jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
         private string _iftttUrl = "https://maker.ifttt.com/trigger/custom_light_up/with/key/{0}";
@@ -31,7 +31,7 @@ namespace SmartBulbs.Web.Controllers
         private TwitterCredentials _twitterCreds;
         private IHubContext<ObservationHub> _hubContext;
 
-        public HomeController(IConfiguration config, NewColorCommand newColorCommand, IOptionsSnapshot<TwitterCredentials> twitterCreds, IHubContext<ObservationHub> hubContext)
+        public HomeController(IConfiguration config, NewPasswordCommand newColorCommand, IOptionsSnapshot<TwitterCredentials> twitterCreds, IHubContext<ObservationHub> hubContext)
         {
             _colorCommand = newColorCommand;
             _httpClient = new HttpClient();
@@ -55,24 +55,25 @@ namespace SmartBulbs.Web.Controllers
         public async Task<IActionResult> CredHubColorize()
         {
             // call credhub to generate a hex password
-            var color = await _colorCommand.ExecuteAsync();
-            if (_colorCommand.IsResponseFromFallback)
-            {
-                Console.WriteLine("Response is not from CredHub");
-            }
+            var newPassword = await _colorCommand.ExecuteAsync();
+            int hash = newPassword.GetHashCode();
+            string r = ((hash & 0xFF0000) >> 16).ToString("X2");
+            string g = ((hash & 0x00FF00) >> 8).ToString("X2");
+            string b = (hash & 0x0000FF).ToString("X2");
+            var color = r + g + b;
 
             // call ifttt to colorize
-            var response = await _httpClient.PostAsJsonAsync($"{_iftttUrl}", 
+            var ifResponse = await _httpClient.PostAsJsonAsync($"{_iftttUrl}", 
                 new IftttWebhookPayload {
                     Value1 = color,
                     Value2 = "1" }, 
                 _jsonSettings);
-
-            await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { new ColorChangeResponse { HexColor = color, TextInput = "CredHub Password" } });
+            var colorResponse = new ColorChangeResponse { HexColor = color, TextInput = newPassword };
+            await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { colorResponse });
 
             // return results
             Thread.Sleep(1500);
-            return Json(color);
+            return Json(colorResponse);
         }
 
         [HttpPost]
@@ -125,6 +126,8 @@ namespace SmartBulbs.Web.Controllers
             return Json(response);
         }
 
+        private ulong sinceId = 0;
+
         [HttpPost]
         public async Task<IActionResult> CheckTwitter()
         {
@@ -153,19 +156,22 @@ namespace SmartBulbs.Web.Controllers
                     await
                     (from search in ctx.Search
                      where search.Type == SearchType.Search &&
+                           search.ResultType == ResultType.Mixed &&
                            search.Query == searchTerm &&
                            search.IncludeEntities == true &&
-                           search.TweetMode == TweetMode.Extended
+                           search.TweetMode == TweetMode.Extended && 
+                           search.Count == 2 && 
+                           search.SinceID == sinceId
                      select search)
                     .SingleOrDefaultAsync();
-
+                sinceId = searchResponse.Statuses.Max(i => i.ID);
                 var texts = searchResponse.Statuses.Select(t => t.FullText);
                 var analyzed = await ColorBySentiment(texts);
 
                 var toReturn = new List<EnhancedTwitterStatus>();
-                var toBroadcast = new List<ColorChangeResponse>();
-                foreach (var s in searchResponse.Statuses)
+                foreach (var status in searchResponse.Statuses.Select((value, i) => new { i, value }))
                 {
+                    var s = status.value;
                     var analysis = analyzed.Find(a => a.Item1 == s.FullText);
                     toReturn.Add(new EnhancedTwitterStatus {
                         FullText = s.FullText,
@@ -173,9 +179,18 @@ namespace SmartBulbs.Web.Controllers
                         User = s.User,
                         SentimentValue = analysis.Item2,
                         HexColor = analysis.Item3 });
-                    toBroadcast.Add(new ColorChangeResponse { TextInput = s.FullText, Sentiment = analysis.Item2, HexColor = analysis.Item3 });
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(status.i * 2000);
+                        await _hubContext.Clients.All.SendAsync("Messages",
+                            new List<ColorChangeResponse>
+                            {
+                                new ColorChangeResponse { TextInput = s.FullText, Sentiment = analysis.Item2, HexColor = analysis.Item3 }
+                            });
+                    });
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                 }
-                await _hubContext.Clients.All.SendAsync("Messages", toBroadcast);
 
                 return Json(toReturn);
             }

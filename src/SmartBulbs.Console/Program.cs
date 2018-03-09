@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using SmartBulbs.Common;
 using Steeltoe.Common.Http;
 using Steeltoe.Discovery.Eureka;
+using Steeltoe.Extensions.Configuration.CloudFoundry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,9 @@ namespace TwitterMonitor
             // Bootstrap the app
             var builder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
-                .AddEnvironmentVariables();
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddEnvironmentVariables()
+                .AddCloudFoundry();
             Configuration = builder.Build();
 
             var factory = new LoggerFactory();
@@ -39,6 +42,13 @@ namespace TwitterMonitor
 
             // Create the Eureka client, start fetching registry in background thread
             var discovery = new DiscoveryClient(discoveryConfig, null, factory);
+            var apps = discovery.Applications;
+            var api = apps.GetRegisteredApplication("SmartBulbs-Web");
+
+            if (api.Count == 0)
+            {
+                throw new Exception("Discovery failed");
+            }
 
             var auth = new SingleUserAuthorizer
             {
@@ -87,11 +97,9 @@ namespace TwitterMonitor
                     }
 
                     // post to web api
-                    var apps = discovery.Applications;
-                    var api = apps.GetRegisteredApplication("SmartBulbs.Web");
                     if (api != null)
                     {
-                        var apiResponse = await httpClient.PostAsync(Configuration["ApiBaseUrl"] + "/bulktext", new StringContent(JsonConvert.SerializeObject(texts), Encoding.UTF8, "application/json"));
+                        var apiResponse = await httpClient.PostAsync(api.Instances[0].HomePageUrl + "home/bulktext", new StringContent(JsonConvert.SerializeObject(texts), Encoding.UTF8, "application/json"));
                         if (apiResponse.IsSuccessStatusCode)
                         {
                             var responseBody = await apiResponse.Content.ReadAsJsonAsync<ColorChangeResponse>();
@@ -115,7 +123,7 @@ namespace TwitterMonitor
                 {
                     Console.WriteLine("No new tweets found");
                 }
-                Thread.Sleep(5000);
+                Thread.Sleep(60000);
             }
         }
     }
