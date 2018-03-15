@@ -2,5 +2,6 @@
 applications:
 - name: smartbulbs-console
   buildpack: dotnet_core_buildpack
+  health-check-type: process
   services:
    - myDiscoveryService

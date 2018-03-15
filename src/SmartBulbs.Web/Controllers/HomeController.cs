@@ -81,10 +81,10 @@ namespace SmartBulbs.Web.Controllers
         {
             var response = new ColorChangeResponse { TextInput = text };
 
-            var analysis = await ColorBySentiment(new List<string> { text });
+            var analysis = await GetColorAndSentimentFromText(new List<string> { text });
 
-            response.Sentiment = analysis.First().Item2;
-            response.HexColor = analysis.First().Item3;
+            response.Sentiment = analysis.First().Sentiment;
+            response.HexColor = analysis.First().HexColor;
 
             // post to ifttt
             var ifTTTresponse = await _httpClient.PostAsJsonAsync($"{_iftttUrl}",
@@ -107,7 +107,7 @@ namespace SmartBulbs.Web.Controllers
         {
             var analysis = await BulkSentiment(texts);
 
-            await _hubContext.Clients.All.SendAsync("Messages", analysis);
+            await _hubContext.Clients.All.SendAsync("Messages", GetColorFromTextAndSentiment(analysis));
 
             var response = new ColorChangeResponse { TextInput = "Bulk Analysis" };
             response.Sentiment = analysis.Average(i => i.Sentiment);
@@ -166,30 +166,20 @@ namespace SmartBulbs.Web.Controllers
                     .SingleOrDefaultAsync();
                 sinceId = searchResponse.Statuses.Max(i => i.ID);
                 var texts = searchResponse.Statuses.Select(t => t.FullText);
-                var analyzed = await ColorBySentiment(texts);
+                var analyzed = await GetColorAndSentimentFromText(texts);
 
                 var toReturn = new List<EnhancedTwitterStatus>();
                 foreach (var status in searchResponse.Statuses.Select((value, i) => new { i, value }))
                 {
                     var s = status.value;
-                    var analysis = analyzed.Find(a => a.Item1 == s.FullText);
+                    var analysis = analyzed.Find(a => a.TextInput == s.FullText);
                     toReturn.Add(new EnhancedTwitterStatus {
                         FullText = s.FullText,
                         CreatedAt = s.CreatedAt,
                         User = s.User,
-                        SentimentValue = analysis.Item2,
-                        HexColor = analysis.Item3 });
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                    Task.Run(async () =>
-                    {
-                        await Task.Delay(status.i * 2000);
-                        await _hubContext.Clients.All.SendAsync("Messages",
-                            new List<ColorChangeResponse>
-                            {
-                                new ColorChangeResponse { TextInput = s.FullText, Sentiment = analysis.Item2, HexColor = analysis.Item3 }
-                            });
-                    });
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                        SentimentValue = analysis.Sentiment,
+                        HexColor = analysis.HexColor});
+                    await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { analysis });
                 }
 
                 return Json(toReturn);
@@ -210,14 +200,17 @@ namespace SmartBulbs.Web.Controllers
         /// </summary>
         /// <param name="texts">Strings to analyze</param>
         /// <returns>Sentiment analysis and color values with original strings</returns>
-        private async Task<List<Tuple<string, double, string>>> ColorBySentiment(IEnumerable<string> texts)
+        private async Task<List<ColorChangeResponse>> GetColorAndSentimentFromText(IEnumerable<string> texts)
         {
-            var toReturn = new List<Tuple<string, double, string>>();
+            return GetColorFromTextAndSentiment(await BulkSentiment(texts));
+        }
 
-            var analysis = await BulkSentiment(texts);
-            foreach (var r in analysis)
+        private List<ColorChangeResponse> GetColorFromTextAndSentiment(List<ScoredText> texts)
+        {
+            var toReturn = new List<ColorChangeResponse>();
+            foreach (var r in texts)
             {
-                toReturn.Add(new Tuple<string, double, string>(r.TextInput, r.Sentiment, HexColorFromDecimal(r.Sentiment)));
+                toReturn.Add(new ColorChangeResponse(r, HexColorFromDecimal(r.Sentiment)));
             }
 
             return toReturn;
