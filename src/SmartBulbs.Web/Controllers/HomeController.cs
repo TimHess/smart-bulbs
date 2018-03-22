@@ -3,12 +3,15 @@ using LifxIoT.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SmartBulbs.Common;
 using SmartBulbs.Web.Hubs;
 using SmartBulbs.Web.Models;
 using SmartBulbs.Web.Services;
+using Steeltoe.Security.DataProtection.CredHub;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -19,23 +22,38 @@ namespace SmartBulbs.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private NewPasswordCommand _colorCommand;
         private static HttpClient _httpClient;
         private JsonSerializerSettings _jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
         private IHubContext<ObservationHub> _hubContext;
         private LifxApi _lifxClient;
         private Utils _utils;
+        private ILoggerFactory _logFactory;
 
-        public HomeController(IConfiguration config, NewPasswordCommand newColorCommand, IHubContext<ObservationHub> hubContext)
+        public HomeController(IConfiguration config, IHubContext<ObservationHub> hubContext, ILoggerFactory loggerFactory)
         {
-            _colorCommand = newColorCommand;
             _httpClient = new HttpClient();
             _hubContext = hubContext;
             _lifxClient = new LifxApi(config.GetValue<string>("lifxKey"));
+            _logFactory = loggerFactory;
             _utils = new Utils(config.GetValue<string>("cognitiveServicesKey"), _httpClient);
         }
 
         public IActionResult Index()
+        {
+            var results = new List<string>();
+            for (double s = 0; s < 1; s += .02d)
+            {
+                results.Add(_utils.HexColorFromDouble(s));
+            }
+            return View(results);
+        }
+
+        public IActionResult Sentiment()
+        {
+            return View();
+        }
+
+        public IActionResult Feedback()
         {
             return View();
         }
@@ -48,17 +66,25 @@ namespace SmartBulbs.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> CredHubColorize()
         {
-            // call credhub to generate a hex password
-            var newPassword = await _colorCommand.ExecuteAsync();
+            // call credhub to generate a password
+            string newPassword;
+            try
+            {
+                var credHubClient = await CredHubClient.CreateMTLSClientAsync(new CredHubOptions(), _logFactory.CreateLogger("CredHub"));
+                var pwparams = new PasswordGenerationParameters { };
+                var credRequest = new PasswordGenerationRequest("credbulb", pwparams, overwriteMode: OverwiteMode.overwrite);
+                newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(credRequest)).Value.ToString();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Calling CredHub Failed: {e}");
+                newPassword = Guid.NewGuid().ToString();
+            }
 
-            // hash the password and shift the bits to convert to RGB
-            int hash = newPassword.GetHashCode();
-            string r = ((hash & 0xFF0000) >> 16).ToString("X2");
-            string g = ((hash & 0x00FF00) >> 8).ToString("X2");
-            string b = (hash & 0x0000FF).ToString("X2");
-
-            var response = new ColorChangeResponse { HexColor = r + g + b, TextInput = newPassword };
-
+            // this library returns password strength on a scale of 0 to 4
+            var passwordStrength = Zxcvbn.Zxcvbn.MatchPassword(newPassword).Score / 4;
+            var color = _utils.HexColorFromDouble(passwordStrength);
+            var response = new ColorChangeResponse { HexColor = color, TextInput = newPassword, Sentiment = passwordStrength };
             await SetColorNotifyObservers(response);
             return Json(response);
         }
@@ -87,7 +113,7 @@ namespace SmartBulbs.Web.Controllers
 
             var response = new ColorChangeResponse { TextInput = "Bulk Analysis" };
             response.Sentiment = analysis.Average(i => i.Sentiment);
-            response.HexColor = _utils.HexColorFromDecimal(response.Sentiment);
+            response.HexColor = _utils.HexColorFromDouble(response.Sentiment);
 
             await SetColorNotifyObservers(response, false);
             return Json(response);

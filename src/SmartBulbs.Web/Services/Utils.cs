@@ -37,7 +37,7 @@ namespace SmartBulbs.Web.Services
             var toReturn = new List<ColorChangeResponse>();
             foreach (var r in texts)
             {
-                toReturn.Add(new ColorChangeResponse(r, HexColorFromDecimal(r.Sentiment)));
+                toReturn.Add(new ColorChangeResponse(r, HexColorFromDouble(r.Sentiment)));
             }
 
             return toReturn;
@@ -97,24 +97,12 @@ namespace SmartBulbs.Web.Services
         /// <param name="sentiment">Sentiment value</param>
         /// <returns>RGB color value</returns>
         /// <remarks>The scale is red(0) to green(1), with blue values highest at .5 and lower towards 0 or 1</remarks>
-        internal string HexColorFromDecimal(double sentiment)
+        internal string HexColorFromDouble(double sentiment)
         {
-            var red = sentiment - 1;
-            var green = sentiment;
-            double blue;
-            if (sentiment < .5)
-            {
-                blue = sentiment;
-            }
-            else if (sentiment == .5)
-            {
-                blue = 1;
-            }
-            else
-            {
-                blue = 1 - sentiment;
-            }
-            return Hexicolor(red) + Hexicolor(green) + Hexicolor(blue);
+            var r = Hexicolor(2.0f * (1 - sentiment));
+            var g = Hexicolor(2.0f * sentiment);
+            var b = Hexicolor(0);
+            return r + g + b;
         }
 
         /// <summary>

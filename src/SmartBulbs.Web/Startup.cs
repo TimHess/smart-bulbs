@@ -5,8 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Pivotal.Discovery.Client;
 using SmartBulbs.Common;
 using SmartBulbs.Web.Hubs;
-using SmartBulbs.Web.Models;
-using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Management.CloudFoundry;
 
 namespace SmartBulbs.Web
@@ -26,12 +24,9 @@ namespace SmartBulbs.Web
             services.AddMvc();
             services.AddSignalR();
 
-            /* Begin non-boilerplate code for demo */
             services.AddDiscoveryClient(Configuration);
-            services.AddHystrixCommand<NewPasswordCommand>("NewColor", Configuration);
             services.Configure<TwitterCredentials>(Configuration.GetSection("Twitter"));
             services.AddCloudFoundryActuators(Configuration);
-            /* End non-boilerplate code for demo */
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -8,11 +8,11 @@
     <PackageReference Include="LifxIoT" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.0-preview1-final" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.0-preview1-final" />
-    <PackageReference Include="Steeltoe.CircuitBreaker.HystrixCore" Version="2.0.0" />
     <PackageReference Include="Pivotal.Discovery.ClientCore" Version="2.0.1" />
     <PackageReference Include="Steeltoe.Extensions.Configuration.CloudFoundryCore" Version="2.0.0" />
     <PackageReference Include="Steeltoe.Management.CloudFoundryCore" Version="2.0.1" />
     <PackageReference Include="Steeltoe.Security.DataProtection.CredHubCore" Version="2.0.0" />
+    <PackageReference Include="zxcvbn-core" Version="2.1.44" />
   </ItemGroup>
 
   <ItemGroup>

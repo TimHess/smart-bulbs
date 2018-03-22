@@ -1,0 +1,29 @@
+﻿@{
+    ViewData["Title"] = "Sentiment Analysis";
+}
+<h2>
+    <input type="text" id="sample" />
+    <button class="btn btn-primary" onclick="analyzeSentiment()">Analyze Sentiment</button>
+</h2>
+<div id="output">
+
+</div>
+<script>
+    function analyzeSentiment() {
+        var text = $("#sample").val();
+        $.ajax({
+            url: "/home/LightByText",
+            type: "POST",
+            data: '"' + text + '"',
+            contentType: "application/json; charset=utf-8",
+            success: function (rsp) {
+                $("#output").append(
+                    "<div class='response'>'" +
+                    rsp.textInput + "' has a sentiment value of " +
+                    parseFloat(rsp.sentiment * 100).toFixed(2) + "%" + ", which evalutates to #" +
+                    rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
+                    "</div>");
+            }
+        });
+    }
+</script>

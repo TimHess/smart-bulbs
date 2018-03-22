@@ -1,95 +1,32 @@
-﻿@{
+﻿@model List<string>
+@{
     ViewData["Title"] = "Home Page";
 }
-<style>
-    .container { width: 100% }
-    div.response {
-        display: block;
-    }
-
-    .response span {
-        display: inline-block;
-        height: 15px;
-        width: 15px;
-        vertical-align: middle;
-    }
-
-    #Sentiment, #tweets {
-        display: none;
-    }
-</style>
-<div id="CredHub">
-    <h2>
-        <button class="btn btn-primary" onclick="changeTheBulbColor()">Use CredHub to get Color</button>
-    </h2>
-    <h2>
-        <button class="btn btn-primary" onclick="checkTwitter()">Get #cfsummit tweets</button>
-    </h2>
-    <h2>
-        <input type="text" id="sample" />
-        <button class="btn btn-primary" onclick="analyzeSentiment()">Analyze Sentiment</button>
+<div class="row">
+    <h2 class="col-xs-12 text-center">
+        <button class="btn btn-obnoxious btn-primary" onclick="changeTheBulbColor()">Use CredHub to get a password</button>
     </h2>
 </div>
-<div id="output">
+<div class="row key">
+    <hr />
+    <h5 class="col-xs-12 text-center">
+        Password strength scale:
+        @foreach(var c in Model) {<span class="colorkey" style="background-color:#@c"></span>}
+    </h5>
+    <hr />
+</div>
+<div id="output" class="text-center">
 
 </div>
-<table class="response table" id="tweets">
-    <tr>
-        <th>Image</th>
-        <th>Name</th>
-        <th>Tweet</th>
-        <th style="width:180px">Timestamp</th>
-        <th>Sentiment</th>
-        <th style="width:100px">Color</th>
-    </tr>
-</table>
-    <script>
-        function changeTheBulbColor() {
-            $.post("/home/CredHubColorize", function (rsp) {
-                //has a sentiment value of {sentiment}, which evaluates to
-                $("#output").append(
-                    "<div class='response'>New password: " + rsp.textInput + " represented as #" +
-                    rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
-                    "</div>");
-            });
-        }
-        function analyzeSentiment() {
-            var text = $("#sample").val();
-            $.ajax({
-                url: "/home/LightByText",
-                type: "POST",
-                data: '"' + text + '"',
-                contentType: "application/json; charset=utf-8",
-                success: function (rsp) {
-                    $("#output").append(
-                        "<div class='response'>'" +
-                        rsp.textInput + "' has a sentiment value of " +
-                        parseFloat(rsp.sentiment * 100).toFixed(2) + "%" + ", which evalutates to #" +
-                        rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
-                        "</div>");
-                }
-            });
-        }
+<script>
+    function changeTheBulbColor() {
+        $(".key").show();
+        $.post("/home/CredHubColorize", function (rsp) {
+            $("#output").prepend(
+                "<hr /><div class='response'>New password: " + rsp.textInput + " scores " + parseFloat(rsp.sentiment * 100).toFixed(2) + "% and has a color score of #" +
+                rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
+                "</div>");
+        });
+    }
 
-        function checkTwitter() {
-            $.ajax({
-                url: "/twitter/get",
-                type: "GET",
-                contentType: "application/json; charset=utf-8",
-                success: function (rsp) {
-                    $("#tweets").show();
-                    for (var i = 0; i < rsp.length; i++) {
-                        $("#tweets").append(
-                            "<tr>" +
-                                "<td><img src='" + rsp[i].user.profileImageUrl + "' alt='" + rsp[i].user.name + "' /></td>" +
-                                "<td><label>" + rsp[i].user.name + "</label></td>" +
-                                "<td><label>" + rsp[i].fullText + "</label></td>" +
-                                "<td>" + rsp[i].createdAt + "</td>" +
-                                "<td>" + parseFloat(rsp[i].sentimentValue * 100).toFixed(2) + "%" + "</td>" + 
-                                "<td>#" + rsp[i].hexColor + " <span style= 'background-color:#" + rsp[i].hexColor + "'></span></td>" +
-                            "</tr>");
-                    }
-                }
-            });
-        }
-    </script>
+</script>
