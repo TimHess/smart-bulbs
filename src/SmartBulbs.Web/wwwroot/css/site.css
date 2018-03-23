@@ -47,20 +47,28 @@ div.response {
     width: 10px;
     vertical-align: middle;
 }
-
-hr {
-    margin-top: 10px;
-    margin-bottom: 10px;
+#sample {
+    vertical-align:middle;
+    width: 600px;
 }
-
-.key {
-    display: none;
-}
-
 #output {
     font-size: 1.5em;
 }
-
+label.form-inline {
+    font-size: 1.5em;
+}
+input[type="checkbox"] {
+    /* Double-sized Checkboxes */
+    -ms-transform: scale(2); /* IE */
+    -moz-transform: scale(2); /* FF */
+    -webkit-transform: scale(2); /* Safari and Chrome */
+    -o-transform: scale(2); /* Opera */
+    padding: 10px;
+    margin-left:4px;
+}
+.password {
+    font-family: 'Courier New', monospace;
+}
 @media (min-width: 768px) {
     .navbar-nav > li > a {
         padding: 30px;

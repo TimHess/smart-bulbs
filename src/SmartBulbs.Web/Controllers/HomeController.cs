@@ -50,12 +50,22 @@ namespace SmartBulbs.Web.Controllers
 
         public IActionResult Sentiment()
         {
-            return View();
+            var results = new List<string>();
+            for (double s = 0; s < 1; s += .02d)
+            {
+                results.Add(_utils.HexColorFromDouble(s));
+            }
+            return View(results);
         }
 
         public IActionResult Feedback()
         {
-            return View();
+            var results = new List<string>();
+            for (double s = 0; s < 1; s += .02d)
+            {
+                results.Add(_utils.HexColorFromDouble(s));
+            }
+            return View(results);
         }
 
         public IActionResult Observe()
@@ -64,27 +74,34 @@ namespace SmartBulbs.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CredHubColorize()
+        public async Task<IActionResult> CredHubColorize([FromBody]PasswordGenerationParameters options)
         {
+            if (options == null) { options = new PasswordGenerationParameters(); }
+
             // call credhub to generate a password
             string newPassword;
             try
             {
                 var credHubClient = await CredHubClient.CreateMTLSClientAsync(new CredHubOptions(), _logFactory.CreateLogger("CredHub"));
-                var pwparams = new PasswordGenerationParameters { };
-                var credRequest = new PasswordGenerationRequest("credbulb", pwparams, overwriteMode: OverwiteMode.overwrite);
+                var credRequest = new PasswordGenerationRequest("credbulb", options, overwriteMode: OverwiteMode.overwrite);
                 newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(credRequest)).Value.ToString();
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Calling CredHub Failed: {e}");
                 newPassword = Guid.NewGuid().ToString();
+                if (options.Length != null && newPassword.Length > options.Length)
+                {
+                    newPassword = newPassword.Substring(0, (int)options.Length);
+                }
             }
 
             // this library returns password strength on a scale of 0 to 4
-            var passwordStrength = Zxcvbn.Zxcvbn.MatchPassword(newPassword).Score / 4;
+            var analysis = Zxcvbn.Zxcvbn.MatchPassword(newPassword);
+            var passwordStrength = (double)analysis.Score / 4;
+            Console.WriteLine($"Password stats -- calcTime: {analysis.CalcTime} crack time: {analysis.CrackTime} ctDisplay: {analysis.CrackTimeDisplay} entropy: {analysis.Entropy} score: {analysis.Score} strength: {passwordStrength}");
             var color = _utils.HexColorFromDouble(passwordStrength);
-            var response = new ColorChangeResponse { HexColor = color, TextInput = newPassword, Sentiment = passwordStrength };
+            var response = new ColorChangeResponse { HexColor = color, TextInput = newPassword + "|~|~|" + analysis.CrackTimeDisplay, Sentiment = passwordStrength };
             await SetColorNotifyObservers(response);
             return Json(response);
         }

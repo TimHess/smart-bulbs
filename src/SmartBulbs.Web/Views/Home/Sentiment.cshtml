@@ -1,14 +1,47 @@
-﻿@{
+﻿@model List<string>
+@{
     ViewData["Title"] = "Sentiment Analysis";
 }
-<h2>
-    <input type="text" id="sample" />
-    <button class="btn btn-primary" onclick="analyzeSentiment()">Analyze Sentiment</button>
-</h2>
-<div id="output">
-
+<div class="row" style="height:140px">
+    <h2 class="col-xs-12 text-center">
+        <textarea rows="3" type="text" id="sample"></textarea><button class="btn btn-obnoxious btn-primary" onclick="analyzeSentiment()">Analyze Sentiment</button>
+    </h2>
 </div>
+<div class="row key">
+    <div class="col-xs-12 text-center">
+        <hr />
+        <table style="width:100%">
+            <tr>
+                <td style="text-align:right;width:40%">
+                    <h3>Sentiment scale:</h3>
+                </td>
+                <td colspan="3" style="padding-left:5px;padding-top:10px;text-align:left;width:200px"> @foreach (var c in Model){<span class="colorkey" style="background-color:#@c"></span>}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="text-left" style="width:65px">0%</td>
+                <td style="width:405px;">50%</td>
+                <td class="text-left">100%</td>
+                <td></td>
+            </tr>
+        </table>
+        <hr />
+    </div>
+</div>
+<table id="output" class="table table-responsive response">
+    <thead class="thead-dark"><tr><th>Text</th><th style="width:200px">Sentiment score</th><th style="width:150px;">Color</th></tr></thead>
+    <tbody></tbody>
+</table>
+@section scripts { 
 <script>
+    $(function () {
+        $("#sample").keypress(function (e) {
+            if (e.which == 13) {
+                analyzeSentiment();
+            }
+        });
+    })
     function analyzeSentiment() {
         var text = $("#sample").val();
         $.ajax({
@@ -17,13 +50,10 @@
             data: '"' + text + '"',
             contentType: "application/json; charset=utf-8",
             success: function (rsp) {
-                $("#output").append(
-                    "<div class='response'>'" +
-                    rsp.textInput + "' has a sentiment value of " +
-                    parseFloat(rsp.sentiment * 100).toFixed(2) + "%" + ", which evalutates to #" +
-                    rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
-                    "</div>");
+                $("#output tbody").prepend(
+                    "<tr><td>" + rsp.textInput + "</td><td>" + parseFloat(rsp.sentiment * 100).toFixed(2) + "%</td><td>#" + rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span></td></tr>");
             }
         });
     }
 </script>
+}

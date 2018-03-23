@@ -11,24 +11,27 @@ This repository consists of two .NET Core applications and one .NET Standard lib
     - MVC: for views and HTTP endpoints
     - SignalR: powers the Observation deck
 - .NET Core Console application
-  - SmartBulbs.Console: polls twitter for new #cfsummit tweets
+  - SmartBulbs.Console:
+    - polls twitter for new #cfsummit tweets
+    - uses Eureka to find SmartBulbs.Web and share tweets via HTTP
 
 ### Software Libraries
 
-- [LifxIoT](https://www.nuget.org/packages/LifxIoT/) (for calling the LIFX API)
-- [LinqToTwitter](https://www.nuget.org/packages/linqtotwitter/5.0.0-beta1) (for interactions with Twitter)
+- [LifxIoT](https://www.nuget.org/packages/LifxIoT/) - for calling the LIFX API to update the bulbs
+- [LinqToTwitter](https://www.nuget.org/packages/linqtotwitter/5.0.0-beta1) - for reading tweets
+- [Zxcvbn-core](https://www.nuget.org/packages/zxcvbn-core/) - .NET Port of Dan Wheeler/Dropbox's JavaScript library - for analyzing password strength
 - [Steeltoe](https://steeltoe.io)
-  - Service Discovery (for the SmartBulbs.Console to discover SmartBulbs.Web)
-  - CloudFoundry Configuration (to read Cloud Foundry environment variables)
-  - CredHub Client (for interactions with CredHub)
-  - Circuit Breaker (around CredHub call, generates a GUID if create password request fails)
-  - Management (for application management and monitoring)
+  - Service Discovery - for the SmartBulbs.Console to discover SmartBulbs.Web
+  - CloudFoundry Configuration - to read Cloud Foundry environment variables
+  - CredHub Client - for interactions with CredHub
+  - Management - for application management and monitoring
 
 ### 3rd Party Services
 
 - Microsoft Cognitive Services Text Analysis API
   - [Sentiment Analysis](https://azure.microsoft.com/en-us/services/cognitive-services/text-analytics/) - determines how the writer is feeling based on the words in their message
 - [LIFX](https://www.lifx.com/) HTTP API - controls the smart bulbs
+- [Twitter](https://twitter.com)
 
 ## Twitter monitoring overview
 

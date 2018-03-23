@@ -2,31 +2,70 @@
 @{
     ViewData["Title"] = "Home Page";
 }
-<div class="row">
+<div class="row" style="height:70px">
     <h2 class="col-xs-12 text-center">
         <button class="btn btn-obnoxious btn-primary" onclick="changeTheBulbColor()">Use CredHub to get a password</button>
     </h2>
 </div>
+<div class="row" style="height:70px">
+    <div class="col-xs-4 text-right"><label for="upper" class="form-inline">Exclude Upper Case:</label> <input type="checkbox" name="upper" id="upper" class="form-inline" /></div>
+    <div class="col-xs-4 text-center"><label for="lower" class="form-inline">Exclude Lower Case:</label> <input type="checkbox" name="lower" id="lower" class="form-inline" /></div>
+    <div class="col-xs-4"><label for="number" class="form-inline">Exclude Numbers:</label> <input type="checkbox" name="number" id="number" class="form-inline" /></div>
+</div>
+<div class="row" style="height:70px">
+    <div class="col-xs-6 text-right"><label for="special" class="form-inline">Include Special Characters:</label> <input type="checkbox" name="special" id="special" class="form-inline" checked="checked" /></div>
+    <div class="col-xs-6"><label for="length" class="form-inline">Length:</label><input type="number" id="length" class="form-inline" value="5" /></div>
+</div>
 <div class="row key">
-    <hr />
-    <h5 class="col-xs-12 text-center">
-        Password strength scale:
-        @foreach(var c in Model) {<span class="colorkey" style="background-color:#@c"></span>}
-    </h5>
-    <hr />
+    <div class="col-xs-12 text-center">
+        <hr />
+        <table style="width:100%">
+            <tr>
+                <td style="text-align:right;width:40%">
+                    <h3>Password Strength Scale:</h3>
+                </td>
+                <td colspan="3" style="padding-left:5px;padding-top:10px;text-align:left;width:200px"> @foreach (var c in Model){<span class="colorkey" style="background-color:#@c"></span>}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="text-left" style="width:65px">0%</td>
+                <td style="width:405px;">50%</td>
+                <td class="text-left">100%</td>
+                <td></td>
+            </tr>
+        </table>
+        <hr />
+    </div>
 </div>
-<div id="output" class="text-center">
-
-</div>
+<table id="output" class="table table-responsive response">
+    <thead class="thead-dark"><tr><th>Password</th><th>Time to Crack</th><th style="width:200px">Strength score</th><th style="width:150px;">Color</th></tr></thead>
+    <tbody></tbody>
+</table>
 <script>
     function changeTheBulbColor() {
-        $(".key").show();
-        $.post("/home/CredHubColorize", function (rsp) {
-            $("#output").prepend(
-                "<hr /><div class='response'>New password: " + rsp.textInput + " scores " + parseFloat(rsp.sentiment * 100).toFixed(2) + "% and has a color score of #" +
-                rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span>" +
-                "</div>");
+        var req = {
+            "length": $("#length").val(),
+            "exclude_upper": $("#upper").is(":checked"),
+            "exclude_lower": $("#lower").is(":checked"),
+            "exclude_number": $("#number").is(":checked"),
+            "include_special": $("#special").is(":checked")
+        };
+        $.ajax({
+            url: "/home/CredHubColorize",
+            type: "POST",
+            data: JSON.stringify(req),
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function (rsp) {
+                $("#output tbody").prepend(
+                    "<tr><td class=\"password\">" + htmlEncode(rsp.textInput.split("|~|~|")[0]) + "</td><td>" + rsp.textInput.split("|~|~|")[1] + "</td><td>" + parseFloat(rsp.sentiment * 100).toFixed(2) + "%</td><td>#" + rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span></td></tr>");
+            }
         });
     }
-
+    function htmlEncode(value) {
+        //create a in-memory div, set it's inner text(which jQuery automatically encodes)
+        //then grab the encoded contents back out.  The div never exists on the page.
+        return $('<div/>').text(value).html();
+    }
 </script>
