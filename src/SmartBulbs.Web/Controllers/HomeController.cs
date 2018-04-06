@@ -10,6 +10,7 @@ using SmartBulbs.Common;
 using SmartBulbs.Web.Hubs;
 using SmartBulbs.Web.Models;
 using SmartBulbs.Web.Services;
+using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Security.DataProtection.CredHub;
 using System;
 using System.Collections.Generic;
@@ -79,22 +80,8 @@ namespace SmartBulbs.Web.Controllers
             if (options == null) { options = new PasswordGenerationParameters(); }
 
             // call credhub to generate a password
-            string newPassword;
-            try
-            {
-                var credHubClient = await CredHubClient.CreateMTLSClientAsync(new CredHubOptions(), _logFactory.CreateLogger("CredHub"));
-                var credRequest = new PasswordGenerationRequest("credbulb", options, overwriteMode: OverwiteMode.overwrite);
-                newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(credRequest)).Value.ToString();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Calling CredHub Failed: {e}");
-                newPassword = Guid.NewGuid().ToString();
-                if (options.Length != null && newPassword.Length > options.Length)
-                {
-                    newPassword = newPassword.Substring(0, (int)options.Length);
-                }
-            }
+            NewPasswordCommand command = new NewPasswordCommand(options, _logFactory);
+            var newPassword = await command.ExecuteAsync();
 
             // this library returns password strength on a scale of 0 to 4
             var analysis = Zxcvbn.Zxcvbn.MatchPassword(newPassword);
