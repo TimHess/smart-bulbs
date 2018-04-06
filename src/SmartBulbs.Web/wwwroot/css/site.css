@@ -1,5 +1,6 @@
 ﻿body {
     padding-bottom: 20px;
+    color: #333;
 }
 
 /* Wrapping element */
@@ -41,6 +42,7 @@ div.response {
     font-size: 1em;
     line-height: 1.3333333;
     border-radius: 6px;
+    margin-right:5px;
 }
 .colorkey {
     display: inline-block;

@@ -43,6 +43,7 @@
         });
     })
     function analyzeSentiment() {
+        $(".btn-obnoxious").after('<i id="loading" class="fa fa-spinner fa-spin"></i>');
         var text = $("#sample").val();
         $.ajax({
             url: "/home/LightByText",
@@ -52,6 +53,7 @@
             success: function (rsp) {
                 $("#output tbody").prepend(
                     "<tr><td>" + rsp.textInput + "</td><td>" + parseFloat(rsp.sentiment * 100).toFixed(2) + "%</td><td>#" + rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span></td></tr>");
+                $("#loading").remove();
             }
         });
     }

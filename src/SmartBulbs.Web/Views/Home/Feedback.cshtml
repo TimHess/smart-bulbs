@@ -11,8 +11,8 @@
         vertical-align:text-bottom;
     }
 </style>
-<div class="row" style="height:140px">
-    <h2 class="col-xs-12 text-center" style="padding-top:20px">
+<div class="row">
+    <h2 class="col-xs-12 text-center">
         <button class="btn btn-obnoxious btn-primary" onclick="checkTwitter()">Get #cfbulbs tweets</button>
     </h2>
 </div>
@@ -38,7 +38,10 @@
             </tr>
         </table>
         <hr /><br />
-        <h2>Aggregate Analysis: Score <span id="aggScore">N/A</span> Color: <span id="aggColor">N/A</span> <span id="aggColorDisplay"></span></h2>
+        <h2 id="avg" style="display:none">
+            Avg Score <span id="aggScore">N/A</span> <br />
+            Color <span id="aggColor">N/A</span> <span id="aggColorDisplay"></span>
+        </h2>
     </div>
 </div>
 <table id="output" class="response table">
@@ -47,6 +50,7 @@
 </table>
 <script>
     function checkTwitter() {
+        $(".btn-obnoxious").after('<i id="loading" class="fa fa-spinner fa-spin"></i>');
         $.ajax({
             url: "/twitter/get",
             type: "GET",
@@ -57,6 +61,7 @@
                     $("#output tbody").html('<tr><td colspan="4" class="text-center">No tweets found</td></tr>');
                     return;
                 }
+                $("#avg").show();
                 $("#aggScore").html(parseFloat(rsp.aggregateScore * 100).toFixed(2) + "%");
                 $("#aggColor").html("#" + rsp.aggregateColor);
                 $("#aggColorDisplay").css("background-color", "#" + rsp.aggregateColor).css("border", "1px dotted black");
@@ -70,6 +75,7 @@
                         "<td>#" + rsp.tweets[i].hexColor + " <span style= 'background-color:#" + rsp.tweets[i].hexColor + "'></span></td>" +
                         "</tr>");
                 }
+                $("#loading").remove();
             }
         });
     }
