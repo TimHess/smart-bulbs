@@ -1,33 +1,30 @@
 @{
-    ViewData["Title"] = "Observation Deck";
+    ViewData["Title"] = "Twitter Observation Deck";
 }
 <style>
     th, td {
         padding: 3px;
     }
-
-    .container {
-        width: 100%
+    .aggregate {
+        float:right;
     }
-
-    div.response {
-        display: block;
-    }
-
-    .response span {
-        display: inline-block;
-        height: 15px;
-        width: 15px;
-        vertical-align: middle;
-    }
-
-    .noshow {
-        display: none;
+    #aggColorDisplay {
+        display:inline-block;
+        height:35px;
+        width:35px;
+        border-radius:25px;
+        vertical-align:text-bottom;
     }
 </style>
 <div class="row">
-    <h1>Welcome to the observation deck!</h1>
-    <h2>Messages will display here as they arrive</h2>
+    <h1>
+        Welcome to the Twitter observation deck!
+        <span id="score" class="aggregate"></span>
+    </h1>
+    <h2>
+        Tweets with #cfsummit will display here as they arrive
+        <span id="aggColorDisplay" class="aggregate"></span> <span id="color" class="aggregate"></span>
+    </h2>
 </div>
 <div class="row">
     <div class="col-md-12">
@@ -50,14 +47,19 @@
     connection.on('Messages', (messages) => {
         $.each(messages, function (i, m) {
             $("#messages tbody").prepend(
-                "<tr class='noshow' id='message" + messageId + "'><td>" + m.textInput + "</td><td>" +
+                "<tr id='message" + messageId + "'><td>" + m.textInput + "</td><td>" +
                 (m.sentiment ? parseFloat(m.sentiment * 100).toFixed(2) + "%" : "n/a") + "</td><td>" +
                 (m.hexColor ? "#" + m.hexColor + " <span style='background-color:#" + m.hexColor + "'></span>" : "n/a") +
                 "</tr></td>"
             );
-            $("#message" + messageId).slideToggle(1000);
+            //$("#message" + messageId).slideToggle(1000);
             messageId++;
         });
+    });
+    connection.on("BulkUpdate", (message) => {
+        $("#score").html("Latest sentiment score: " + parseFloat(message.item2 * 100).toFixed(2) + "%");
+        $("#color").html("Latest color value: #" + message.item1);
+        $("#aggColorDisplay").css("background-color", "#" + message.item1);
     });
 
     function showErr(msg) {

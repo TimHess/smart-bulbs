@@ -2,9 +2,18 @@
 @{
     ViewData["Title"] = "Get Feedback";
 }
+<style>
+    #aggColorDisplay {
+        display:inline-block;
+        height:35px;
+        width:35px;
+        border-radius:25px;
+        vertical-align:text-bottom;
+    }
+</style>
 <div class="row" style="height:140px">
     <h2 class="col-xs-12 text-center" style="padding-top:20px">
-        <button class="btn btn-obnoxious btn-primary" onclick="checkTwitter()">Get #cfsummit tweets</button>
+        <button class="btn btn-obnoxious btn-primary" onclick="checkTwitter()">Get #cfbulbs tweets</button>
     </h2>
 </div>
 <div class="row key">
@@ -15,8 +24,9 @@
                 <td style="text-align:right;width:40%">
                     <h3>Sentiment scale:</h3>
                 </td>
-                <td colspan="3" style="padding-left:5px;padding-top:10px;text-align:left;width:200px"> @foreach (var c in Model)
-            {<span class="colorkey" style="background-color:#@c"></span>}</td>
+                <td colspan="3" style="padding-left:5px;padding-top:10px;text-align:left;width:200px"> 
+                    @foreach (var c in Model){<span class="colorkey" style="background-color:#@c"></span>}
+                </td>
                 <td></td>
             </tr>
             <tr>
@@ -27,13 +37,13 @@
                 <td></td>
             </tr>
         </table>
-        <hr />
+        <hr /><br />
+        <h2>Aggregate Analysis: Score <span id="aggScore">N/A</span> Color: <span id="aggColor">N/A</span> <span id="aggColorDisplay"></span></h2>
     </div>
 </div>
-
 <table id="output" class="response table">
     <thead class="thead-dark"><tr><th>User</th><th>Tweet</th><th style="width:180px">Sentiment score</th><th style="width:150px">Color</th></tr></thead>
-    <tbody></tbody>
+    <tbody><tr><td class="text-center" colspan="4">Click the button to get some tweets</td></tr></tbody>
 </table>
 <script>
     function checkTwitter() {
@@ -43,14 +53,21 @@
             contentType: "application/json; charset=utf-8",
             success: function (rsp) {
                 $("#output tbody").html("");
-                for (var i = 0; i < rsp.length; i++) {
+                if (rsp.tweets.length == 0) {
+                    $("#output tbody").html('<tr><td colspan="4" class="text-center">No tweets found</td></tr>');
+                    return;
+                }
+                $("#aggScore").html(parseFloat(rsp.aggregateScore * 100).toFixed(2) + "%");
+                $("#aggColor").html("#" + rsp.aggregateColor);
+                $("#aggColorDisplay").css("background-color", "#" + rsp.aggregateColor).css("border", "1px dotted black");
+                for (var i = 0; i < rsp.tweets.length; i++) {
                     $("#output tbody").append(
                         "<tr>" +
-                        "<td><img src='" + rsp[i].user.profileImageUrl + "' alt='" + rsp[i].user.name + "' /><label>" + rsp[i].user.name + "</label></td>" +
-                        "<td><label>" + rsp[i].fullText + "</label></td>" +
-                        "<!--<td>" + rsp[i].createdAt + "</td>-->" +
-                        "<td>" + parseFloat(rsp[i].sentimentValue * 100).toFixed(2) + "%" + "</td>" +
-                        "<td>#" + rsp[i].hexColor + " <span style= 'background-color:#" + rsp[i].hexColor + "'></span></td>" +
+                        "<td><img src='" + rsp.tweets[i].user.profileImageUrl + "' alt='" + rsp.tweets[i].user.name + "' /><label>" + rsp.tweets[i].user.name + "</label></td>" +
+                        "<td><label>" + rsp.tweets[i].fullText + "</label></td>" +
+                        "<!--<td>" + rsp.tweets[i].createdAt + "</td>-->" +
+                        "<td>" + parseFloat(rsp.tweets[i].sentimentValue * 100).toFixed(2) + "%" + "</td>" +
+                        "<td>#" + rsp.tweets[i].hexColor + " <span style= 'background-color:#" + rsp.tweets[i].hexColor + "'></span></td>" +
                         "</tr>");
                 }
             }

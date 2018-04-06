@@ -102,7 +102,7 @@ namespace SmartBulbs.Web.Controllers
             Console.WriteLine($"Password stats -- calcTime: {analysis.CalcTime} crack time: {analysis.CrackTime} ctDisplay: {analysis.CrackTimeDisplay} entropy: {analysis.Entropy} score: {analysis.Score} strength: {passwordStrength}");
             var color = _utils.HexColorFromDouble(passwordStrength);
             var response = new ColorChangeResponse { HexColor = color, TextInput = newPassword + "|~|~|" + analysis.CrackTimeDisplay, Sentiment = passwordStrength };
-            await SetColorNotifyObservers(response);
+            await SetColorNotifyObservers(response, false);
             return Json(response);
         }
 
@@ -117,7 +117,7 @@ namespace SmartBulbs.Web.Controllers
                 HexColor = analysis.First().HexColor
             };
 
-            await SetColorNotifyObservers(response);
+            await SetColorNotifyObservers(response, false);
             return Json(response);
         }
 
@@ -132,7 +132,8 @@ namespace SmartBulbs.Web.Controllers
             response.Sentiment = analysis.Average(i => i.Sentiment);
             response.HexColor = _utils.HexColorFromDouble(response.Sentiment);
 
-            await SetColorNotifyObservers(response, false);
+            await _hubContext.Clients.All.SendAsync("BulkUpdate", new Tuple<string, double>(response.HexColor, response.Sentiment));
+            await SetColorNotifyObservers(response, false, 5);
             return Json(response);
         }
 
@@ -141,9 +142,9 @@ namespace SmartBulbs.Web.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        private async Task SetColorNotifyObservers(ColorChangeResponse response, bool? notify = true)
+        private async Task SetColorNotifyObservers(ColorChangeResponse response, bool? notify = true, double? duration = 1)
         {
-            await _lifxClient.SetState(new All(), new SentState { Color = $"#{response.HexColor}", Duration = 1 });
+            await _lifxClient.SetState(new All(), new SentState { Color = $"#{response.HexColor}", Duration = (double)duration });
             if (notify == true)
             {
                 await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { response });

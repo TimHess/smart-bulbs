@@ -2,17 +2,23 @@
 @{
     ViewData["Title"] = "Home Page";
 }
+<style>
+    .advanced { display:none; }
+</style>
 <div class="row" style="height:70px">
     <h2 class="col-xs-12 text-center">
         <button class="btn btn-obnoxious btn-primary" onclick="changeTheBulbColor()">Use CredHub to get a password</button>
     </h2>
 </div>
-<div class="row" style="height:70px">
+<div class="row">
+    <h6 class="col-xs-12 text-center"><a href="#" onclick="toggleAdvanced()">Show/Hide Options</a></h6>
+</div>
+<div class="row advanced" style="height:70px">
     <div class="col-xs-4 text-right"><label for="upper" class="form-inline">Exclude Upper Case:</label> <input type="checkbox" name="upper" id="upper" class="form-inline" /></div>
     <div class="col-xs-4 text-center"><label for="lower" class="form-inline">Exclude Lower Case:</label> <input type="checkbox" name="lower" id="lower" class="form-inline" /></div>
     <div class="col-xs-4"><label for="number" class="form-inline">Exclude Numbers:</label> <input type="checkbox" name="number" id="number" class="form-inline" /></div>
 </div>
-<div class="row" style="height:70px">
+<div class="row advanced" style="height:70px">
     <div class="col-xs-6 text-right"><label for="special" class="form-inline">Include Special Characters:</label> <input type="checkbox" name="special" id="special" class="form-inline" checked="checked" /></div>
     <div class="col-xs-6"><label for="length" class="form-inline">Length:</label><input type="number" id="length" class="form-inline" value="5" /></div>
 </div>
@@ -67,5 +73,8 @@
         //create a in-memory div, set it's inner text(which jQuery automatically encodes)
         //then grab the encoded contents back out.  The div never exists on the page.
         return $('<div/>').text(value).html();
+    }
+    function toggleAdvanced() {
+        $(".advanced").fadeToggle();
     }
 </script>

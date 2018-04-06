@@ -66,13 +66,11 @@ namespace TwitterMonitor
             Console.WriteLine("Entering the loop...");
             while (true)
             {
-
-                Console.WriteLine("Checking for tweets...");
-                string searchTerm = "#cfsummit -coldfusion";
-                //string searchTerm = "#internationalwomensday2018";
+                string searchTerm = Configuration.GetValue<string>("twitterSearch");
+                Console.WriteLine($"Checking for 10 tweets with query '{searchTerm}'");
 
                 List<Status> searchResponse =
-                    await (from s in ctx.Search where s.Query == searchTerm && s.Type == SearchType.Search && s.IncludeEntities == true && s.TweetMode == TweetMode.Extended && s.SinceID == sinceId && s.Count == 5 select s.Statuses).SingleOrDefaultAsync();
+                    await (from s in ctx.Search where s.Query == searchTerm && s.Type == SearchType.Search && s.IncludeEntities == true && s.TweetMode == TweetMode.Extended && s.SinceID == sinceId && s.Count == 10 select s.Statuses).SingleOrDefaultAsync();
 
                 if (searchResponse.Any())
                 {
@@ -102,7 +100,7 @@ namespace TwitterMonitor
                 {
                     Console.WriteLine("No new tweets found");
                 }
-                Thread.Sleep(30000);
+                Thread.Sleep(Configuration.GetValue<int>("sleepTime"));
             }
         }
     }

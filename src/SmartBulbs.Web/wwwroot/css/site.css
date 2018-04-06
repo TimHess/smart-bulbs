@@ -30,6 +30,7 @@ div.response {
 }
 
 .response span {
+    border-radius: 15px;
     display: inline-block;
     height: 21px;
     width: 21px;
