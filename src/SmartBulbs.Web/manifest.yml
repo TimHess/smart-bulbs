@@ -4,3 +4,4 @@ applications:
   buildpack: dotnet_core_buildpack
   services:
    - myDiscoveryService
+   - myConfigServer

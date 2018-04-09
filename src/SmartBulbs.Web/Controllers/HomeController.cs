@@ -10,7 +10,6 @@ using SmartBulbs.Common;
 using SmartBulbs.Web.Hubs;
 using SmartBulbs.Web.Models;
 using SmartBulbs.Web.Services;
-using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Security.DataProtection.CredHub;
 using System;
 using System.Collections.Generic;
@@ -36,7 +35,7 @@ namespace SmartBulbs.Web.Controllers
             _hubContext = hubContext;
             _lifxClient = new LifxApi(config.GetValue<string>("lifxKey"));
             _logFactory = loggerFactory;
-            _utils = new Utils(config.GetValue<string>("cognitiveServicesKey"), _httpClient);
+            _utils = new Utils(config.GetValue<string>("cognitiveServices:apiUrl"), config.GetValue<string>("cognitiveServices:apiKey"), _httpClient);
         }
 
         public IActionResult Index()
@@ -131,7 +130,7 @@ namespace SmartBulbs.Web.Controllers
 
         private async Task SetColorNotifyObservers(ColorChangeResponse response, bool? notify = true, double? duration = 1)
         {
-            await _lifxClient.SetState(new All(), new SentState { Color = $"#{response.HexColor}", Duration = (double)duration });
+            await _lifxClient.SetState(new All(), new SentState { Color = $"#{response.HexColor}", Duration = (double)duration, Power = "on" });
             if (notify == true)
             {
                 await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { response });

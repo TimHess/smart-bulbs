@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Configuration;
-using Steeltoe.Extensions.Configuration.CloudFoundry;
+using Pivotal.Extensions.Configuration.ConfigServer;
 using Steeltoe.Extensions.Logging;
 using System.IO;
 
@@ -28,7 +28,7 @@ namespace SmartBulbs.Web
                         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                         .AddJsonFile($"appsettings.{builderContext.HostingEnvironment.EnvironmentName}.json", optional: true)
                         .AddEnvironmentVariables()
-                        .AddCloudFoundry();
+                        .AddConfigServer();
                 })
                 .ConfigureLogging((builderContext, loggingBuilder) =>
                 {

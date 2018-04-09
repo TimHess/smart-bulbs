@@ -5,3 +5,4 @@ applications:
   health-check-type: process
   services:
    - myDiscoveryService
+   - myConfigServer

@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.0.1" />
     <PackageReference Include="Pivotal.Discovery.ClientCore" Version="2.0.1" />
+    <PackageReference Include="Pivotal.Extensions.Configuration.ConfigServerCore" Version="2.0.0" />
     <!--<PackageReference Include="Steeltoe.CloudFoundry.ConnectorBase" Version="2.0.0" />-->
     <PackageReference Include="Steeltoe.Common.Http" Version="2.0.0" />
     <PackageReference Include="Steeltoe.Discovery.EurekaBase" Version="2.0.1" />
@@ -30,7 +31,7 @@
 
   <ItemGroup>
     <None Update="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

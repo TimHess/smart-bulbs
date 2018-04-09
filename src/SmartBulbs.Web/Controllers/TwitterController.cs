@@ -26,7 +26,7 @@ namespace SmartBulbs.Web.Controllers
         {
             _lifxClient = new LifxApi(config.GetValue<string>("lifxKey"));
             _twitterCreds = twitterCreds.Value;
-            _utils = new Utils(config.GetValue<string>("cognitiveServicesKey"), new HttpClient());
+            _utils = new Utils(config.GetValue<string>("cognitiveServices:apiUrl"), config.GetValue<string>("cognitiveServices:apiKey"), new HttpClient());
             _twitterSearchTerm = config.GetValue<string>("twitterSearch");
         }
 
@@ -87,7 +87,7 @@ namespace SmartBulbs.Web.Controllers
                     AggregateColor = _utils.HexColorFromDouble(aggScore)
                 };
 
-                await _lifxClient.SetState(new All(), new SentState { Color = $"#{toReturn.AggregateColor}", Duration = 1 });
+                await _lifxClient.SetState(new All(), new SentState { Color = $"#{toReturn.AggregateColor}", Duration = 1, Power = "on" });
 
                 foreach (var status in searchResponse.Statuses.Select((value, i) => new { i, value }))
                 {

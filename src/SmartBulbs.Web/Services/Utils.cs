@@ -12,12 +12,13 @@ namespace SmartBulbs.Web.Services
 {
     public class Utils
     {
-        private string _sentimentUrl = "https://eastus2.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment";
+        private string _sentimentUrl;
         private string _cognitiveKey;
         private HttpClient _httpClient;
 
-        public Utils(string cognitiveServicesKey, HttpClient httpClient)
+        public Utils(string sentimentUrl, string cognitiveServicesKey, HttpClient httpClient)
         {
+            _sentimentUrl = sentimentUrl;
             _cognitiveKey = cognitiveServicesKey;
             _httpClient = httpClient;
         }

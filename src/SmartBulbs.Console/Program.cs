@@ -4,10 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Pivotal.Discovery.Client;
+using Pivotal.Extensions.Configuration.ConfigServer;
 using SmartBulbs.Common;
 using Steeltoe.Common.Discovery;
 using Steeltoe.Common.Http;
-using Steeltoe.Extensions.Configuration.CloudFoundry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +29,7 @@ namespace TwitterMonitor
                 .AddJsonFile("appsettings.json")
                 .AddJsonFile("appsettings.Development.json", optional: true)
                 .AddEnvironmentVariables()
-                .AddCloudFoundry();
+                .AddConfigServer();
             Configuration = builder.Build();
 
             var factory = new LoggerFactory();
