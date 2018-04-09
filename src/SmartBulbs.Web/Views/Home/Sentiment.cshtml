@@ -53,6 +53,8 @@
             success: function (rsp) {
                 $("#output tbody").prepend(
                     "<tr><td>" + rsp.textInput + "</td><td>" + parseFloat(rsp.sentiment * 100).toFixed(2) + "%</td><td>#" + rsp.hexColor + " <span style='background-color:#" + rsp.hexColor + "'></span></td></tr>");
+            },
+            complete: function (rsp) {
                 $("#loading").remove();
             }
         });

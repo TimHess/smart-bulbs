@@ -75,6 +75,8 @@
                         "<td>#" + rsp.tweets[i].hexColor + " <span style= 'background-color:#" + rsp.tweets[i].hexColor + "'></span></td>" +
                         "</tr>");
                 }
+            },
+            complete: function (rsp) {
                 $("#loading").remove();
             }
         });
