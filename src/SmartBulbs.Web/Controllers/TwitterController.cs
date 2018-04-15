@@ -1,36 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using LifxIoT.Api;
-using LifxIoT.Models;
-using LinqToTwitter;
+﻿using LinqToTwitter;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using SmartBulbs.Common;
 using SmartBulbs.Web.Models;
 using SmartBulbs.Web.Services;
+using Steeltoe.CircuitBreaker.Hystrix;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace SmartBulbs.Web.Controllers
 {
     public class TwitterController : Controller
     {
-        private LifxApi _lifxClient;
+        private string _lifxKey;
         private TwitterCredentials _twitterCreds;
         private Utils _utils;
         private string _twitterSearchTerm;
 
         public TwitterController(IConfiguration config, IOptionsSnapshot<TwitterCredentials> twitterCreds)
         {
-            _lifxClient = new LifxApi(config.GetValue<string>("lifxKey"));
+            _lifxKey = config.GetValue<string>("lifxKey");
             _twitterCreds = twitterCreds.Value;
             _utils = new Utils(config.GetValue<string>("cognitiveServices:apiUrl"), config.GetValue<string>("cognitiveServices:apiKey"), new HttpClient());
             _twitterSearchTerm = config.GetValue<string>("twitterSearch");
         }
 
-        private ulong sinceId = 0;
+        private static ulong sinceId = 0;
 
         public async Task<IActionResult> Get()
         {
@@ -59,7 +58,7 @@ namespace SmartBulbs.Web.Controllers
                     await
                     (from search in ctx.Search
                      where search.Type == SearchType.Search &&
-                           search.ResultType == ResultType.Mixed &&
+                           search.ResultType == ResultType.Recent &&
                            search.Query == searchTerm &&
                            search.IncludeEntities == true &&
                            search.TweetMode == TweetMode.Extended &&
@@ -75,9 +74,9 @@ namespace SmartBulbs.Web.Controllers
                         Tweets = new List<EnhancedTwitterStatus>()
                     });
                 }
-
-                sinceId = searchResponse.Statuses.Max(i => i.ID);
-                var texts = searchResponse.Statuses.Select(t => t.FullText);
+                var subset = searchResponse.Statuses.OrderBy(o => o.StatusID)/*.Take(2)*/;
+                sinceId = subset.Max(i => i.StatusID);
+                var texts = subset.Select(t => t.FullText);
                 var analyzed = await _utils.GetColorAndSentimentFromText(texts);
                 var aggScore = analyzed.Average(r => r.Sentiment);
 
@@ -86,10 +85,15 @@ namespace SmartBulbs.Web.Controllers
                     AggregateScore = aggScore,
                     AggregateColor = _utils.HexColorFromDouble(aggScore)
                 };
+                var hystrixOptions = new HystrixCommandOptions(HystrixCommandKeyDefault.AsKey("SetColor"))
+                {
+                    GroupKey = HystrixCommandGroupKeyDefault.AsKey("SetColorGroup"),
+                    ExecutionTimeoutEnabled = false
+                };
+                SetColorCommand command = new SetColorCommand(hystrixOptions, _lifxKey, toReturn.AggregateColor);
+                await command.ExecuteAsync();
 
-                await _lifxClient.SetState(new All(), new SentState { Color = $"#{toReturn.AggregateColor}", Duration = 1, Power = "on" });
-
-                foreach (var status in searchResponse.Statuses.Select((value, i) => new { i, value }))
+                foreach (var status in subset.Select((value, i) => new { i, value }))
                 {
                     var s = status.value;
                     var analysis = analyzed.Find(a => a.TextInput == s.FullText);

@@ -2,7 +2,6 @@
 using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Security.DataProtection.CredHub;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -13,6 +12,7 @@ namespace SmartBulbs.Web.Models
         private static readonly Random rand = new Random();
         private ILoggerFactory logFactory;
         private PasswordGenerationParameters _options;
+        private static Random random = new Random();
 
         public NewPasswordCommand(PasswordGenerationParameters options, ILoggerFactory loggerFactory) : base(HystrixCommandGroupKeyDefault.AsKey("NewPasswordGroup"))
         {
@@ -22,7 +22,7 @@ namespace SmartBulbs.Web.Models
 
         protected override async Task<string> RunAsync()
         {
-            var credHubClient = await CredHubClient.CreateMTLSClientAsync(new CredHubOptions(), logFactory.CreateLogger("CredHub"));
+            var credHubClient = await CredHubClient.CreateMTLSClientAsync(new CredHubOptions { ValidateCertificates = false }, logFactory.CreateLogger("CredHub"));
             var credRequest = new PasswordGenerationRequest("credbulb", _options, overwriteMode: OverwiteMode.overwrite);
             var newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(credRequest)).Value;
             Console.WriteLine("success path");
@@ -32,13 +32,29 @@ namespace SmartBulbs.Web.Models
         protected override Task<string> RunFallbackAsync()
         {
             Console.WriteLine("fallback path");
-            var newPassword = Guid.NewGuid().ToString();
-            if (_options.Length != null && newPassword.Length > _options.Length)
+            string chars = "";
+            if (_options.ExcludeUpper != true)
             {
-                newPassword = newPassword.Substring(0, (int)_options.Length);
+                chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             }
-
-            return Task.FromResult(newPassword);
+            if (_options.ExcludeLower != true)
+            {
+                chars += "abcdefghijklmnopqrstuvwxyz";
+            }
+            if (_options.ExcludeNumber != true)
+            {
+                chars += "0123456789";
+            }
+            if (_options.IncludeSpecial == true)
+            {
+                chars += "!@#$%^&*()~`[]{}\\|;:'\",<.>/?";
+            }
+            if (chars == "")
+            {
+                return Task.FromResult("bad request!");
+            }
+            return Task.FromResult(new string(Enumerable.Repeat(chars, _options.Length ?? 5)
+              .Select(s => s[random.Next(s.Length)]).ToArray()));
         }
     }
 }

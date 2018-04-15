@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Pivotal.Discovery.Client;
 using SmartBulbs.Common;
 using SmartBulbs.Web.Hubs;
+using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Management.CloudFoundry;
 
 namespace SmartBulbs.Web
@@ -27,6 +28,7 @@ namespace SmartBulbs.Web
             services.AddDiscoveryClient(Configuration);
             services.Configure<TwitterCredentials>(Configuration.GetSection("Twitter"));
             services.AddCloudFoundryActuators(Configuration);
+            services.AddHystrixMetricsStream(Configuration);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -58,6 +60,7 @@ namespace SmartBulbs.Web
                 routes.MapHub<ObservationHub>("/observe");
             });
             app.UseCloudFoundryActuators();
+            app.UseHystrixMetricsStream();
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using LifxIoT.Api;
-using LifxIoT.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -10,6 +8,7 @@ using SmartBulbs.Common;
 using SmartBulbs.Web.Hubs;
 using SmartBulbs.Web.Models;
 using SmartBulbs.Web.Services;
+using Steeltoe.CircuitBreaker.Hystrix;
 using Steeltoe.Security.DataProtection.CredHub;
 using System;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ namespace SmartBulbs.Web.Controllers
         private static HttpClient _httpClient;
         private JsonSerializerSettings _jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
         private IHubContext<ObservationHub> _hubContext;
-        private LifxApi _lifxClient;
+        private string _lifxKey;
         private Utils _utils;
         private ILoggerFactory _logFactory;
 
@@ -33,7 +32,7 @@ namespace SmartBulbs.Web.Controllers
         {
             _httpClient = new HttpClient();
             _hubContext = hubContext;
-            _lifxClient = new LifxApi(config.GetValue<string>("lifxKey"));
+            _lifxKey = config.GetValue<string>("lifxKey");
             _logFactory = loggerFactory;
             _utils = new Utils(config.GetValue<string>("cognitiveServices:apiUrl"), config.GetValue<string>("cognitiveServices:apiKey"), _httpClient);
         }
@@ -130,7 +129,11 @@ namespace SmartBulbs.Web.Controllers
 
         private async Task SetColorNotifyObservers(ColorChangeResponse response, bool? notify = true, double? duration = 1)
         {
-            await _lifxClient.SetState(new All(), new SentState { Color = $"#{response.HexColor}", Duration = (double)duration, Power = "on" });
+            var hystrixOptions = new HystrixCommandOptions(HystrixCommandKeyDefault.AsKey("SetColor"));
+            hystrixOptions.GroupKey = HystrixCommandGroupKeyDefault.AsKey("SetColorGroup");
+            hystrixOptions.ExecutionTimeoutEnabled = false;
+            SetColorCommand command = new SetColorCommand(hystrixOptions, _lifxKey, response.HexColor, duration);
+            await command.ExecuteAsync();
             if (notify == true)
             {
                 await _hubContext.Clients.All.SendAsync("Messages", new List<ColorChangeResponse> { response });
