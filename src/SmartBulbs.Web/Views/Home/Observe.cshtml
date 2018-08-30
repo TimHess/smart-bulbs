@@ -22,7 +22,7 @@
         <span id="score" class="aggregate"></span>
     </h1>
     <h2>
-        Tweets with #cfsummit will display here as they arrive
+        Tweets with #springone will display here as they arrive
         <span id="aggColorDisplay" class="aggregate"></span> <span id="color" class="aggregate"></span>
     </h2>
 </div>
@@ -42,7 +42,10 @@
 </div>
 <script src="~/lib/signalr/signalr.js"></script>
 <script>
-    const connection = new signalR.HubConnection('/observe');
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/observe")
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
     var messageId = 1;
     connection.on('Messages', (messages) => {
         $.each(messages, function (i, m) {

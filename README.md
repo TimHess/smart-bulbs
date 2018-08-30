@@ -1,4 +1,4 @@
-# CF Summit 2018 - Smart Bulb Demo
+# PCF Smart Bulb Demo
 
 ## Overview
 
@@ -6,7 +6,7 @@ This repository consists of two .NET Core applications and one .NET Standard lib
 
 ## Tools used
 
-- ASP.NET Core (2.1.0-preview1-final)
+- ASP.NET Core (2.1.0)
   - SmartBulbs.Web: provides a UI for getting a CredHub password, reading tweets on demand, and viewing sentiment analysis and color results
     - MVC: for views and HTTP endpoints
     - SignalR: powers the Observation deck
@@ -18,7 +18,7 @@ This repository consists of two .NET Core applications and one .NET Standard lib
 ### Software Libraries
 
 - [LifxIoT](https://www.nuget.org/packages/LifxIoT/) - for calling the LIFX API to update the bulbs
-- [LinqToTwitter](https://www.nuget.org/packages/linqtotwitter/5.0.0-beta1) - for reading tweets
+- [LinqToTwitter](https://www.nuget.org/packages/linqtotwitter/5.0.0-beta2) - for reading tweets
 - [Zxcvbn-core](https://www.nuget.org/packages/zxcvbn-core/) - .NET Port of Dan Wheeler/Dropbox's JavaScript library - for analyzing password strength
 - [Steeltoe](https://steeltoe.io)
   - Service Discovery - for the SmartBulbs.Console to discover SmartBulbs.Web

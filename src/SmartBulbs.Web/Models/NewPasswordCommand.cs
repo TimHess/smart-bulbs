@@ -26,6 +26,14 @@ namespace SmartBulbs.Web.Models
             var credRequest = new PasswordGenerationRequest("credbulb", _options, overwriteMode: OverwiteMode.overwrite);
             var newPassword = (await credHubClient.GenerateAsync<PasswordCredential>(credRequest)).Value;
             Console.WriteLine("success path");
+            try
+            {
+                await credHubClient.DeleteByNameAsync("credbulb");
+            }
+            catch
+            {
+                Console.WriteLine("Failed to delete credential");
+            }
             return newPassword.ToString();
         }
 
