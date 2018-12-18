@@ -6,7 +6,7 @@ This repository consists of two .NET Core applications and one .NET Standard lib
 
 ## Tools used
 
-- ASP.NET Core (2.1.0)
+- ASP.NET Core (2.1)
   - SmartBulbs.Web: provides a UI for getting a CredHub password, reading tweets on demand, and viewing sentiment analysis and color results
     - MVC: for views and HTTP endpoints
     - SignalR: powers the Observation deck
